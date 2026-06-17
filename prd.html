@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRD - 酒水销售佣金自动核算系统 | 盛洁 Portfolio</title>
+  <meta name="description" content="酒水销售佣金自动核算系统PRD，为纽约00:00Space Club设计，将人工核算时间从每周3小时降至5分钟，核算准确率提升至99.9%。">
+  <meta property="og:title" content="PRD - 酒水销售佣金自动核算系统">
+  <meta property="og:description" content="为纽约00:00Space Club设计的佣金自动核算系统产品需求文档。">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="zh_CN">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand"><span class="dot"></span>盛洁 Portfolio</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="prd.html" class="active">PRD</a></li>
+      <li><a href="analysis-star-rail.html">星穹铁道</a></li>
+      <li><a href="analysis-kings.html">王者荣耀</a></li>
+      <li><a href="analysis-genshin.html">原神</a></li>
+    </ul>
+    <button class="nav-toggle" aria-label="菜单">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Article Hero -->
+<section class="article-hero">
+  <div class="article-hero-inner">
+    <div class="breadcrumb">
+      <a href="index.html">首页</a> / <span>PRD</span>
+    </div>
+    <h1>酒水销售佣金自动核算系统</h1>
+    <div class="meta">
+      <span>版本 v1.0</span>
+      <span>撰写人：盛洁</span>
+      <span>日期：2026年6月</span>
+      <span>项目：00:00Space Club</span>
+    </div>
+  </div>
+</section>
+
+<!-- Article Content -->
+<article class="article-container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h4>目录</h4>
+    <ol>
+      <li><a href="#section-1">一、背景与目标</a></li>
+      <li><a href="#section-2">二、用户故事</a></li>
+      <li><a href="#section-3">三、功能需求</a></li>
+      <li><a href="#section-4">四、流程图</a></li>
+      <li><a href="#section-5">五、数据埋点需求</a></li>
+      <li><a href="#section-6">六、验收标准</a></li>
+      <li><a href="#section-7">七、技术可行性评估</a></li>
+      <li><a href="#section-8">八、数据验证方案</a></li>
+      <li><a href="#section-9">九、附录</a></li>
+    </ol>
+  </div>
+
+  <!-- ===== 一、背景与目标 ===== -->
+  <h2 id="section-1">一、背景与目标</h2>
+
+  <h3>1.1 业务背景</h3>
+  <p>00:00Space Club 是一家位于美国纽约的线下娱乐场所，主营业务包括：</p>
+  <ul>
+    <li>场地租赁（DJ台、舞池、VIP包厢）</li>
+    <li>酒水销售（现场调酒、瓶装酒、软饮）</li>
+    <li>活动策划（主题派对、私人定制活动）</li>
+  </ul>
+
+  <div class="info-box warning">
+    <p><strong>当前痛点：</strong></p>
+    <ul style="margin-top:0.5rem; padding-left:1.25rem;">
+      <li>酒水销售佣金依赖人工核算，每周耗费店长3-4小时</li>
+      <li>提成规则复杂（分级提成 + 品类差异 + 时段加成），人工计算易出错</li>
+      <li>延迟结算影响员工积极性，导致销售动力不足</li>
+      <li>缺乏数据沉淀，无法分析高利润品类/时段/员工</li>
+    </ul>
+  </div>
+
+  <h3>1.2 项目目标</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>目标类型</th>
+          <th>具体指标</th>
+          <th>验证方式</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>效率目标</td>
+          <td>佣金核算时间从3小时/周降至5分钟/周</td>
+          <td>系统操作日志统计</td>
+        </tr>
+        <tr>
+          <td>准确目标</td>
+          <td>核算错误率从5%降至0.1%</td>
+          <td>财务对账差异统计</td>
+        </tr>
+        <tr>
+          <td>体验目标</td>
+          <td>员工可实时查看预估佣金</td>
+          <td>员工满意度调研（NPS&ge;40）</td>
+        </tr>
+        <tr>
+          <td>数据目标</td>
+          <td>建立酒水销售数据看板</td>
+          <td>看板使用频率统计</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>1.3 目标用户</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>用户角色</th>
+          <th>核心需求</th>
+          <th>使用场景</th>
+          <th>痛点</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>店长（Admin）</td>
+          <td>高效准确核算、规则灵活配置</td>
+          <td>每周结算日</td>
+          <td>人工核算耗时、规则复杂易错</td>
+        </tr>
+        <tr>
+          <td>调酒师/服务员（Staff）</td>
+          <td>实时查看佣金、理解提成规则</td>
+          <td>每日下班前</td>
+          <td>佣金不透明、延迟发放</td>
+        </tr>
+        <tr>
+          <td>财务（Finance）</td>
+          <td>数据可追溯、报表导出</td>
+          <td>月度审计</td>
+          <td>数据分散、对账困难</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 二、用户故事 ===== -->
+  <h2 id="section-2">二、用户故事</h2>
+
+  <h3>2.1 店长视角</h3>
+
+  <div class="user-story">
+    <div class="story-id">US-001</div>
+    <div class="story-title">规则配置</div>
+    <div class="story-desc">作为店长，我希望在系统中配置不同酒水品类的提成比例，以便佣金规则可灵活调整。</div>
+    <div class="ac-title">Acceptance Criteria</div>
+    <ul class="ac-list">
+      <li>支持按品类（啤酒/烈酒/鸡尾酒/软饮）设置基础提成比例</li>
+      <li>支持按员工等级（初级/中级/高级）设置系数加成</li>
+      <li>支持按时段（平日/周末/节假日）设置加成系数</li>
+      <li>规则修改后，历史订单佣金按原规则计算，新订单按新规则计算</li>
+    </ul>
+  </div>
+
+  <div class="user-story">
+    <div class="story-id">US-002</div>
+    <div class="story-title">批量核算</div>
+    <div class="story-desc">作为店长，我希望一键核算本周所有员工的酒水销售佣金，以便快速完成结算。</div>
+    <div class="ac-title">Acceptance Criteria</div>
+    <ul class="ac-list">
+      <li>支持选择时间范围（本周/本月/自定义）</li>
+      <li>自动读取POS系统销售数据</li>
+      <li>按规则自动计算每位员工佣金</li>
+      <li>生成可导出的结算报表（PDF/Excel）</li>
+      <li>异常数据（如退货、折扣订单）高亮提示</li>
+    </ul>
+  </div>
+
+  <div class="user-story">
+    <div class="story-id">US-003</div>
+    <div class="story-title">数据看板</div>
+    <div class="story-desc">作为店长，我希望查看酒水销售的数据看板，以便优化进货和排班策略。</div>
+    <div class="ac-title">Acceptance Criteria</div>
+    <ul class="ac-list">
+      <li>展示Top10高利润品类</li>
+      <li>展示各时段销售热力图</li>
+      <li>展示员工销售排名</li>
+      <li>支持按周/月/季度筛选</li>
+    </ul>
+  </div>
+
+  <h3>2.2 员工视角</h3>
+
+  <div class="user-story">
+    <div class="story-id">US-004</div>
+    <div class="story-title">实时佣金查询</div>
+    <div class="story-desc">作为调酒师，我希望在手机上实时查看今日预估佣金，以便了解工作成果。</div>
+    <div class="ac-title">Acceptance Criteria</div>
+    <ul class="ac-list">
+      <li>移动端适配（微信小程序）</li>
+      <li>展示今日/本周/本月累计佣金</li>
+      <li>展示每笔订单的佣金明细（订单号、品类、金额、提成比例、佣金）</li>
+      <li>佣金数据T+1更新（当日数据次日可见）</li>
+    </ul>
+  </div>
+
+  <div class="user-story">
+    <div class="story-id">US-005</div>
+    <div class="story-title">规则透明</div>
+    <div class="story-desc">作为服务员，我希望清楚了解提成规则，以便知道如何提升收入。</div>
+    <div class="ac-title">Acceptance Criteria</div>
+    <ul class="ac-list">
+      <li>展示当前生效的提成规则（品类比例、等级系数、时段加成）</li>
+      <li>用示例说明规则计算逻辑</li>
+      <li>规则变更时推送通知</li>
+    </ul>
+  </div>
+
+  <h3>2.3 财务视角</h3>
+
+  <div class="user-story">
+    <div class="story-id">US-006</div>
+    <div class="story-title">审计追溯</div>
+    <div class="story-desc">作为财务人员，我希望查看每笔佣金的计算明细和规则版本，以便审计核查。</div>
+    <div class="ac-title">Acceptance Criteria</div>
+    <ul class="ac-list">
+      <li>每笔佣金记录关联：员工、订单、规则版本、计算时间</li>
+      <li>支持按员工/时间/订单号检索</li>
+      <li>支持导出审计报表</li>
+      <li>规则变更历史留痕</li>
+    </ul>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 三、功能需求 ===== -->
+  <h2 id="section-3">三、功能需求</h2>
+
+  <h3>3.1 系统架构</h3>
+  <div class="arch-diagram">
+    <div class="arch-layer">
+      <span class="arch-layer-title">前端层</span>
+      <div class="arch-items">
+        <div class="arch-item">管理后台（Web）</div>
+        <div class="arch-item">员工端（小程序）</div>
+        <div class="arch-item">财务端（Web）</div>
+      </div>
+    </div>
+    <div class="arch-connector">&darr;</div>
+    <div class="arch-layer">
+      <span class="arch-layer-title">API层（RESTful）</span>
+      <div class="arch-items">
+        <div class="arch-item">规则管理</div>
+        <div class="arch-item">订单同步</div>
+        <div class="arch-item">佣金计算</div>
+        <div class="arch-item">报表导出</div>
+        <div class="arch-item">权限控制</div>
+      </div>
+    </div>
+    <div class="arch-connector">&darr;</div>
+    <div class="arch-layer">
+      <span class="arch-layer-title">数据层</span>
+      <div class="arch-items">
+        <div class="arch-item">员工表 / 佣金记录表</div>
+        <div class="arch-item">订单表 / 规则历史表</div>
+        <div class="arch-item">规则表 / 操作日志表</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>3.2 功能模块清单</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>模块</th>
+          <th>功能点</th>
+          <th>优先级</th>
+          <th>备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>规则引擎</td>
+          <td>品类/等级/时段三维规则配置</td>
+          <td><span class="priority p0">P0</span></td>
+          <td>核心差异化能力</td>
+        </tr>
+        <tr>
+          <td>订单同步</td>
+          <td>POS系统数据导入/API对接</td>
+          <td><span class="priority p0">P0</span></td>
+          <td>支持CSV导入作为MVP方案</td>
+        </tr>
+        <tr>
+          <td>佣金计算</td>
+          <td>批量核算 + 实时预估</td>
+          <td><span class="priority p0">P0</span></td>
+          <td>计算逻辑需可单元测试</td>
+        </tr>
+        <tr>
+          <td>报表中心</td>
+          <td>结算报表 + 审计报表 + 数据看板</td>
+          <td><span class="priority p1">P1</span></td>
+          <td>看板可二期迭代</td>
+        </tr>
+        <tr>
+          <td>员工端</td>
+          <td>小程序佣金查询 + 规则展示</td>
+          <td><span class="priority p1">P1</span></td>
+          <td>提升员工体验</td>
+        </tr>
+        <tr>
+          <td>权限管理</td>
+          <td>RBAC角色权限控制</td>
+          <td><span class="priority p1">P1</span></td>
+          <td>店长/员工/财务三角色</td>
+        </tr>
+        <tr>
+          <td>通知系统</td>
+          <td>规则变更通知 + 结算完成通知</td>
+          <td><span class="priority p2">P2</span></td>
+          <td>微信模板消息</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>3.3 核心功能详细设计</h3>
+
+  <h4>3.3.1 佣金计算引擎</h4>
+  <div class="code-block">单笔佣金 = 订单金额 &times; 品类基础比例 &times; 员工等级系数 &times; 时段加成系数
+总佣金 = &Sigma;(单笔佣金) - 退货扣减 - 折扣分摊</div>
+
+  <p>规则优先级（冲突时以高优先级为准）：</p>
+  <ol>
+    <li>特殊活动规则（临时促销）</li>
+    <li>节假日时段规则</li>
+    <li>周末时段规则</li>
+    <li>平日时段规则</li>
+    <li>品类默认规则</li>
+  </ol>
+
+  <div class="info-box">
+    <p><strong>异常处理：</strong></p>
+    <ul style="margin-top:0.5rem; padding-left:1.25rem;">
+      <li>退货订单：佣金自动扣减，历史已发放佣金标记为"待追回"</li>
+      <li>折扣订单：按实际成交金额计算佣金</li>
+      <li>多人协作订单：支持分佣比例配置（如调酒师70% + 服务员30%）</li>
+    </ul>
+  </div>
+
+  <h4>3.3.2 订单同步机制</h4>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>同步方式</th>
+          <th>适用场景</th>
+          <th>技术方案</th>
+          <th>优先级</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>API对接</td>
+          <td>POS系统支持开放接口</td>
+          <td>定时拉取（每15分钟）</td>
+          <td><span class="priority p0">P0</span></td>
+        </tr>
+        <tr>
+          <td>CSV导入</td>
+          <td>POS系统不支持API</td>
+          <td>模板下载 &rarr; 填写 &rarr; 上传 &rarr; 数据校验</td>
+          <td><span class="priority p0">P0</span></td>
+        </tr>
+        <tr>
+          <td>手动录入</td>
+          <td>特殊订单/补录</td>
+          <td>表单录入 + 审批流</td>
+          <td><span class="priority p1">P1</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 四、流程图 ===== -->
+  <h2 id="section-4">四、流程图</h2>
+
+  <h3>4.1 佣金核算主流程</h3>
+  <div class="flow-diagram">
+    <div class="flow-step highlight">开始</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">选择核算周期</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">读取订单数据</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">规则匹配</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">异常处理</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">人工确认</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">生成结算报表</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">发放佣金</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step highlight">结束</div>
+  </div>
+  <p style="font-size:0.85rem; color:var(--text-light);">* 异常处理环节会将异常订单标记，人工确认环节可针对标记数据进行修正后继续流程。</p>
+
+  <h3>4.2 规则配置流程</h3>
+  <div class="flow-diagram">
+    <div class="flow-step highlight">进入规则配置</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">选择规则类型</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">填写规则参数</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">预览影响（模拟计算）</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">确认无误</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">保存并发布</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step highlight">生效</div>
+  </div>
+
+  <h3>4.3 员工查询佣金流程</h3>
+  <div class="flow-diagram">
+    <div class="flow-step highlight">打开小程序</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">微信授权登录</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">绑定员工身份</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">进入首页</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">查看预估佣金</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">选择时间范围</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step highlight">查看明细</div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 五、数据埋点需求 ===== -->
+  <h2 id="section-5">五、数据埋点需求</h2>
+
+  <h3>5.1 业务数据埋点</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>埋点事件</th>
+          <th>触发时机</th>
+          <th>数据字段</th>
+          <th>分析目标</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>commission_calculate</code></td>
+          <td>点击"核算"按钮</td>
+          <td>核算周期、订单数、员工数、耗时</td>
+          <td>核算效率监控</td>
+        </tr>
+        <tr>
+          <td><code>rule_modify</code></td>
+          <td>保存规则修改</td>
+          <td>规则类型、修改字段、修改人</td>
+          <td>规则变更频率分析</td>
+        </tr>
+        <tr>
+          <td><code>report_export</code></td>
+          <td>导出报表</td>
+          <td>报表类型、时间范围、格式</td>
+          <td>报表使用频率</td>
+        </tr>
+        <tr>
+          <td><code>staff_query_commission</code></td>
+          <td>员工查询佣金</td>
+          <td>员工ID、查询时间范围</td>
+          <td>员工端活跃度</td>
+        </tr>
+        <tr>
+          <td><code>order_sync</code></td>
+          <td>订单同步完成</td>
+          <td>同步方式、订单数、成功/失败数</td>
+          <td>数据同步健康度</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>5.2 体验数据埋点</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>埋点事件</th>
+          <th>触发时机</th>
+          <th>数据字段</th>
+          <th>分析目标</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>page_view</code></td>
+          <td>页面打开</td>
+          <td>页面路径、停留时长</td>
+          <td>功能使用热度</td>
+        </tr>
+        <tr>
+          <td><code>error_occurred</code></td>
+          <td>系统报错</td>
+          <td>错误类型、错误信息、用户操作路径</td>
+          <td>系统稳定性监控</td>
+        </tr>
+        <tr>
+          <td><code>help_clicked</code></td>
+          <td>点击帮助文档</td>
+          <td>帮助页面、停留时长</td>
+          <td>功能理解难度</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>5.3 数据看板指标</h3>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-value">12次</span>
+      <span class="stat-label">本周核算次数</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">3.2分钟</span>
+      <span class="stat-label">平均核算耗时</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">99.8%</span>
+      <span class="stat-label">核算准确率</span>
+    </div>
+  </div>
+  <p>看板还应包含：各时段销售热力图、Top10高利润品类（柱状图）、员工销售排名（排行榜）。</p>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 六、验收标准 ===== -->
+  <h2 id="section-6">六、验收标准</h2>
+
+  <h3>6.1 功能验收</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>验收项</th>
+          <th>验收标准</th>
+          <th>验收方式</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>规则配置</td>
+          <td>支持品类&times;等级&times;时段三维规则配置，规则修改后新订单按新规则计算</td>
+          <td>功能测试</td>
+        </tr>
+        <tr>
+          <td>佣金计算</td>
+          <td>1000笔订单批量核算耗时&le;30秒，准确率&ge;99.9%</td>
+          <td>性能测试 + 数据校验</td>
+        </tr>
+        <tr>
+          <td>订单同步</td>
+          <td>支持CSV导入和API对接两种方式，数据校验通过率&ge;99%</td>
+          <td>集成测试</td>
+        </tr>
+        <tr>
+          <td>报表导出</td>
+          <td>支持PDF/Excel导出，格式正确、数据完整</td>
+          <td>功能测试</td>
+        </tr>
+        <tr>
+          <td>员工端</td>
+          <td>微信小程序可正常访问，佣金数据T+1更新</td>
+          <td>真机测试</td>
+        </tr>
+        <tr>
+          <td>权限控制</td>
+          <td>店长可查看全部数据，员工仅查看个人数据，财务可查看审计数据</td>
+          <td>安全测试</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.2 性能验收</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>指标</th>
+          <th>目标值</th>
+          <th>测试方法</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>页面加载时间</td>
+          <td>&le;2秒</td>
+          <td>Lighthouse性能测试</td>
+        </tr>
+        <tr>
+          <td>API响应时间</td>
+          <td>&le;500ms（P95）</td>
+          <td>压力测试（100并发）</td>
+        </tr>
+        <tr>
+          <td>佣金计算吞吐量</td>
+          <td>&ge;1000笔/分钟</td>
+          <td>批量数据测试</td>
+        </tr>
+        <tr>
+          <td>系统可用性</td>
+          <td>&ge;99.5%</td>
+          <td>7&times;24小时监控</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.3 数据验收</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>指标</th>
+          <th>目标值</th>
+          <th>采集周期</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>核算时间</td>
+          <td>从3小时/周降至5分钟/周</td>
+          <td>上线后第1/2/4周</td>
+        </tr>
+        <tr>
+          <td>核算错误率</td>
+          <td>&le;0.1%</td>
+          <td>每月财务对账</td>
+        </tr>
+        <tr>
+          <td>员工满意度（NPS）</td>
+          <td>&ge;40</td>
+          <td>上线后第2周调研</td>
+        </tr>
+        <tr>
+          <td>系统使用率</td>
+          <td>店长100%使用、员工&ge;80%使用</td>
+          <td>上线后第1个月</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 七、技术可行性评估 ===== -->
+  <h2 id="section-7">七、技术可行性评估</h2>
+
+  <h3>7.1 技术方案选型</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>技术环节</th>
+          <th>推荐方案</th>
+          <th>选型理由</th>
+          <th>风险</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>前端（管理端）</td>
+          <td>React + Ant Design</td>
+          <td>组件丰富、开发效率高</td>
+          <td>低</td>
+        </tr>
+        <tr>
+          <td>前端（小程序）</td>
+          <td>微信小程序原生</td>
+          <td>无需额外适配成本</td>
+          <td>低</td>
+        </tr>
+        <tr>
+          <td>后端</td>
+          <td>Node.js / Express</td>
+          <td>快速开发、JSON处理友好</td>
+          <td>低</td>
+        </tr>
+        <tr>
+          <td>数据库</td>
+          <td>PostgreSQL</td>
+          <td>支持复杂查询、事务安全</td>
+          <td>低</td>
+        </tr>
+        <tr>
+          <td>订单同步</td>
+          <td>定时任务（node-cron）</td>
+          <td>实现简单、可扩展为消息队列</td>
+          <td>中</td>
+        </tr>
+        <tr>
+          <td>报表导出</td>
+          <td>PDFKit + xlsx</td>
+          <td>纯Node.js实现，无需额外服务</td>
+          <td>低</td>
+        </tr>
+        <tr>
+          <td>部署</td>
+          <td>Docker + AWS/阿里云</td>
+          <td>标准化部署、易维护</td>
+          <td>低</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>7.2 技术风险与应对</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>风险点</th>
+          <th>影响</th>
+          <th>应对方案</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>POS系统无开放API</td>
+          <td>订单同步依赖手动CSV导入，效率低</td>
+          <td>MVP阶段接受CSV导入，同步推进API对接谈判</td>
+        </tr>
+        <tr>
+          <td>佣金规则频繁变更</td>
+          <td>历史数据追溯复杂</td>
+          <td>规则版本化设计，每笔佣金记录关联规则版本ID</td>
+        </tr>
+        <tr>
+          <td>并发计算性能瓶颈</td>
+          <td>高峰期核算卡顿</td>
+          <td>计算任务异步化（消息队列），前端展示进度条</td>
+        </tr>
+        <tr>
+          <td>数据安全（员工隐私）</td>
+          <td>佣金数据敏感</td>
+          <td>字段级加密 + 操作日志审计 + 最小权限原则</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>7.3 开发估算</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>模块</th>
+          <th>人天估算</th>
+          <th>依赖</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>规则引擎</td>
+          <td>5天</td>
+          <td>无</td>
+        </tr>
+        <tr>
+          <td>订单同步（CSV）</td>
+          <td>3天</td>
+          <td>规则引擎</td>
+        </tr>
+        <tr>
+          <td>佣金计算</td>
+          <td>4天</td>
+          <td>规则引擎、订单同步</td>
+        </tr>
+        <tr>
+          <td>报表中心</td>
+          <td>4天</td>
+          <td>佣金计算</td>
+        </tr>
+        <tr>
+          <td>员工端小程序</td>
+          <td>5天</td>
+          <td>佣金计算API</td>
+        </tr>
+        <tr>
+          <td>权限管理</td>
+          <td>3天</td>
+          <td>无</td>
+        </tr>
+        <tr>
+          <td>测试与修复</td>
+          <td>5天</td>
+          <td>全部功能</td>
+        </tr>
+        <tr>
+          <td><strong>总计</strong></td>
+          <td><strong>29天（约6周）</strong></td>
+          <td>-</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 八、数据验证方案 ===== -->
+  <h2 id="section-8">八、数据验证方案</h2>
+
+  <h3>8.1 A/B测试方案</h3>
+  <p><strong>测试假设：</strong>员工实时查看佣金可提升销售积极性，进而提升酒水销售额。</p>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>方案</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>实验组</td>
+          <td>开通小程序实时佣金查询功能</td>
+        </tr>
+        <tr>
+          <td>对照组</td>
+          <td>维持原有周结算告知方式</td>
+        </tr>
+        <tr>
+          <td>核心指标</td>
+          <td>人均酒水销售额（周环比）</td>
+        </tr>
+        <tr>
+          <td>辅助指标</td>
+          <td>员工满意度、系统使用率</td>
+        </tr>
+        <tr>
+          <td>实验周期</td>
+          <td>4周</td>
+        </tr>
+        <tr>
+          <td>样本量</td>
+          <td>全部员工（约15人），无需分组</td>
+        </tr>
+        <tr>
+          <td>显著性标准</td>
+          <td>人均销售额提升&ge;10%，p&lt;0.05</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>8.2 灰度发布方案</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>阶段</th>
+          <th>范围</th>
+          <th>验证目标</th>
+          <th>周期</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>内测</td>
+          <td>店长 + 1名调酒师</td>
+          <td>核心流程跑通、无阻塞BUG</td>
+          <td>3天</td>
+        </tr>
+        <tr>
+          <td>小范围</td>
+          <td>50%员工</td>
+          <td>真实场景验证、收集反馈</td>
+          <td>1周</td>
+        </tr>
+        <tr>
+          <td>全量</td>
+          <td>全部员工</td>
+          <td>全面使用、数据监控</td>
+          <td>持续</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>8.3 数据监控清单</h3>
+  <div class="monitor-tree">
+    <div class="tree-title">每日监控</div>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 订单同步成功率<br>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 佣金计算耗时<br>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 系统错误日志数<br>
+    &nbsp;&nbsp;&boxud;&horz;&horz; 活跃用户（店长/员工）<br>
+    <br>
+    <div class="tree-title">每周监控</div>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 核算准确率（与手工核对）<br>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 员工端使用频率<br>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 功能使用热力图<br>
+    &nbsp;&nbsp;&boxud;&horz;&horz; 用户反馈汇总<br>
+    <br>
+    <div class="tree-title">每月复盘</div>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 核算效率提升比例<br>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 错误率趋势<br>
+    &nbsp;&nbsp;&boxur;&horz;&horz; 员工满意度变化<br>
+    &nbsp;&nbsp;&boxud;&horz;&horz; ROI计算（节省人力成本 vs 系统投入）
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== 九、附录 ===== -->
+  <h2 id="section-9">九、附录</h2>
+
+  <h3>9.1 术语表</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>术语</th>
+          <th>定义</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>POS</td>
+          <td>Point of Sale，销售终端系统</td>
+        </tr>
+        <tr>
+          <td>RBAC</td>
+          <td>Role-Based Access Control，基于角色的访问控制</td>
+        </tr>
+        <tr>
+          <td>T+1更新</td>
+          <td>当日数据次日可见</td>
+        </tr>
+        <tr>
+          <td>P0/P1/P2</td>
+          <td>优先级：P0=必须上线、P1=重要、P2=优化</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>9.2 参考文档</h3>
+  <ul>
+    <li>00:00Space Club 现有POS系统接口文档（如有）</li>
+    <li>美国纽约州劳工法佣金结算相关规定</li>
+    <li>微信小程序开发文档</li>
+  </ul>
+
+  <h3>9.3 版本历史</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>版本</th>
+          <th>日期</th>
+          <th>修改内容</th>
+          <th>修改人</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>v1.0</td>
+          <td>2026-06-18</td>
+          <td>初始版本</td>
+          <td>盛洁</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Concluding Info Box -->
+  <div class="info-box highlight" style="margin-top:3rem;">
+    <p>本PRD基于实际项目经验撰写，融合了技术可行性评估与数据验证方案，体现"技术背景+产品思维"的复合能力。</p>
+  </div>
+
+</article>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <p><strong>盛洁</strong> &middot; 产品经理作品集 &middot; 2026</p>
+  <div class="footer-links">
+    <a href="index.html">首页</a>
+    <a href="prd.html">PRD</a>
+    <a href="analysis-star-rail.html">星穹铁道</a>
+    <a href="analysis-kings.html">王者荣耀</a>
+    <a href="analysis-genshin.html">原神</a>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
