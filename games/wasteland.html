@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>废土快递 · 盛洁游戏作品集</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <meta name="description" content="废土快递 Wasteland Express — 核战后废土Roguelike经营游戏，程序化地图生成与Deck Building改装系统">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="logo">
+        <span class="logo-bracket">[</span><span class="logo-name">盛洁</span><span class="logo-role">· 游戏策划</span><span class="logo-bracket">]</span>
+      </a>
+      <nav class="header-nav">
+        <a href="../index.html#games" class="nav-link">全部作品</a>
+        <a href="../index.html#about" class="nav-link">关于我</a>
+        <a href="mailto:sj200403272021@163.com" class="nav-link nav-contact">联系我</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="game-page-header" style="background: linear-gradient(135deg, #2e1a0a 0%, #4e2d1b 50%, #5c3317 100%);">
+    <div class="game-page-hero-bg"></div>
+    <div class="game-page-hero-content container">
+      <div class="game-page-meta">
+        <span class="tag tag-genre">Roguelike</span>
+        <span class="tag tag-genre">经营模拟</span>
+        <span class="tag tag-tech">Electron</span>
+        <span class="tag" style="background:rgba(255,230,109,0.15);color:#ffe66d;border:1px solid rgba(255,230,109,0.3);">独立策划 & 开发</span>
+      </div>
+      <h1 class="game-page-title">废土快递</h1>
+      <p class="game-page-subtitle">
+        Wasteland Express · 核战后废土背景 Roguelike 经营游戏<br>
+        接单 → 规划路线 → 旅途事件 → 交易改装，完整闭环设计<br>
+        程序化地图生成 · Deck Building 改装系统 · 经济套利逻辑
+      </p>
+      <div class="game-page-actions">
+        <a href="#play" class="btn btn-primary"><span>🎮 立即游玩</span></a>
+        <a href="#design" class="btn btn-ghost"><span>📐 策划文档</span></a>
+        <a href="https://github.com/shengjie2022/wasteland-express" target="_blank" class="btn btn-outline">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.62.87 1.08 1.845 2.835 1.31 3.53 1.005.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          源码
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 试玩区 -->
+  <section class="game-page-section" id="play" style="padding-top:60px;">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Live Demo</div>
+        <h2>直接在浏览器游玩</h2>
+        <p>无需下载，点击即玩。完整游戏流程，含城镇经营、路线规划、改装系统。</p>
+      </div>
+      <div class="play-zone">
+        <div class="play-zone-header">
+          <div class="play-zone-title">
+            <span class="play-zone-dot"></span>
+            废土快递 · HTML5 Canvas
+          </div>
+          <a href="wasteland/web-index.html" target="_blank" class="btn btn-outline" style="padding:4px 12px;font-size:12px;">
+            在新窗口打开
+          </a>
+        </div>
+        <iframe
+          src="wasteland/web-index.html"
+          title="废土快递"
+          sandbox="allow-scripts allow-same-origin"
+          style="width:100%;height:600px;border:none;display:block;background:#1a1a0e;">
+        </iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- 设计文档 -->
+  <section class="game-page-section" id="design">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Game Design Document</div>
+        <h2>核心系统设计</h2>
+        <p>程序化地图生成 · 改装系统 · 经济模型 · 旅途事件</p>
+      </div>
+
+      <!-- 系统1：地图 -->
+      <div class="doc-card" style="margin-bottom:32px;">
+        <div class="doc-icon">🗺️</div>
+        <h3>程序化地图生成系统</h3>
+        <p>采用最小生成树（MST）算法保证地图连通性，配合快捷路线注入构建玩家可选路径网络。核心逻辑：</p>
+        <table class="data-table" style="margin-top:16px;">
+          <thead><tr><th>参数</th><th>范围 / 说明</th><th>设计意图</th></tr></thead>
+          <tbody>
+            <tr><td>城镇数量</td><td>8~12 座 / 每局随机</td><td>保证探索深度但不造成信息过载</td></tr>
+            <tr><td>城镇类型</td><td>5 类（废墟/据点/集市/哨站/研究所）</td><td>不同类型对应不同商品价格与任务</td></tr>
+            <tr><td>路线危险度</td><td>1~5 级 / 消耗燃油/耐久/理智</td><td>高频短途 vs 低频长途的策略权衡</td></tr>
+            <tr><td>快捷路线</td><td>2~3 条 / 消耗更低但需特定零件</td><td>鼓励玩家在改装系统上投入</td></tr>
+            <tr><td>路网结构</td><td>MST + 额外边注入 / 平衡效率与探索</td><td>每局路网不同但逻辑合理</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 系统2：改装 -->
+      <div class="doc-card" style="margin-bottom:32px;">
+        <div class="doc-icon">🛠️</div>
+        <h3>Deck Building 改装系统</h3>
+        <p>5 个货车槽位（引擎/轮胎/装甲/货箱/特殊），25 种可改装零件，每种零件带有稀有度词缀（普通/稀有/传说），构成 RPG 数值深度：</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px;">
+          <div style="background:var(--bg-secondary);padding:14px;border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">⚙️ 引擎</div>
+            <div style="font-size:13px;color:var(--text-secondary);">影响最高速度与燃油效率</div>
+          </div>
+          <div style="background:var(--bg-secondary);padding:14px;border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">🚗 轮胎</div>
+            <div style="font-size:13px;color:var(--text-secondary);">影响崎岖路线的速度惩罚</div>
+          </div>
+          <div style="background:var(--bg-secondary);padding:14px;border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">🛡️ 装甲</div>
+            <div style="font-size:13px;color:var(--text-secondary);">减少战斗伤害与路障损耗</div>
+          </div>
+          <div style="background:var(--bg-secondary);padding:14px;border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">📦 货箱</div>
+            <div style="font-size:13px;color:var(--text-secondary);">决定单次最大载货量</div>
+          </div>
+          <div style="background:var(--bg-secondary);padding:14px;border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:4px;">🔧 特殊槽</div>
+            <div style="font-size:13px;color:var(--text-secondary);">科技/防御/速度等特殊强化</div>
+          </div>
+        </div>
+        <p style="margin-top:16px;font-size:13px;color:var(--text-secondary);">
+          <strong style="color:var(--accent-1);">5 件套装效果：</strong>集齐特定组合触发套装属性（+30% 燃油效率、+2 格货箱容量等），激励玩家追求完整改装路线。
+        </p>
+      </div>
+
+      <!-- 系统3：经济 -->
+      <div class="doc-card" style="margin-bottom:32px;">
+        <div class="doc-icon">💰</div>
+        <h3>商品经济套利系统</h3>
+        <p>10 种可交易商品，跨城镇价格差异构成核心经济循环。玩家通过低买高卖、路线规划与信息收集实现套利：</p>
+        <table class="data-table" style="margin-top:16px;">
+          <thead><tr><th>商品类型</th><th>举例</th><th>价格波动特征</th><th>套利策略</th></tr></thead>
+          <tbody>
+            <tr><td>刚需品</td><td>水、罐头、医疗包</td><td>小幅波动（±20%）</td><td>稳定但利润低，走量取胜</td></tr>
+            <tr><td>奢侈品</td><td>酒、武器零件、艺术品</td><td>大幅波动（±80%）</td><td>高风险高回报，信息优先</td></tr>
+            <tr><td>任务品</td><td>特定城镇限定的货物</td><td>任务驱动价格</td><td>接任务 → 找货 → 交付一条龙</td></tr>
+            <tr><td>危险品</td><td>放射性材料、违禁品</td><td>极高利润但高危险度路线</td><td>高等级装甲才能安全运输</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 系统4：旅途事件 -->
+      <div class="doc-card">
+        <div class="doc-icon">⚔️</div>
+        <h3>旅途随机事件系统</h3>
+        <p>行驶在路线上时，每经过一段距离触发随机事件，事件类型覆盖：</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;">
+          <span class="about-tag">劫匪遭遇</span>
+          <span class="about-tag">路障选择（强行突破/绕路/交保护费）</span>
+          <span class="about-tag">流浪商人</span>
+          <span class="about-tag">废土拾荒点</span>
+          <span class="about-tag">NPC 求救</span>
+          <span class="about-tag">天气变化（影响路线消耗）</span>
+          <span class="about-tag">车辆故障</span>
+          <span class="about-tag">神秘消息（隐藏任务触发）</span>
+        </div>
+        <p style="margin-top:14px;font-size:13px;color:var(--text-secondary);">
+          事件结果与当前改装状态挂钩（装甲等级决定劫匪战斗胜率，轮胎决定恶劣路况速度等），让改装投入可见化。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="game-page-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Summary</div>
+        <h2>项目总结</h2>
+      </div>
+      <div class="doc-card-grid">
+        <div class="doc-card">
+          <div class="doc-icon">📊</div>
+          <h3>数值设计</h3>
+          <p>燃油消耗曲线 × 距离 × 载货量，超重惩罚公式，危险度与装甲值折算表，确保经济系统不崩溃。</p>
+        </div>
+        <div class="doc-card">
+          <div class="doc-icon">🎯</div>
+          <h3>核心体验</h3>
+          <p>每局游戏都是一次路网探索 × 经济博弈 × 改装决策的三角平衡，玩家永远在「稳扎稳打」和「高风险高回报」之间权衡。</p>
+        </div>
+        <div class="doc-card">
+          <div class="doc-icon">🔧</div>
+          <h3>技术实现</h3>
+          <p>Electron + HTML5 Canvas，main.js 创建 BrowserWindow 加载 index.html，无 Node.js 后端依赖，可迁移为纯 Web 版本。</p>
+        </div>
+      </div>
+      <div style="margin-top:32px;display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="https://github.com/shengjie2022/wasteland-express" target="_blank" class="btn btn-primary">
+          <span>查看完整源码</span>
+        </a>
+        <a href="../index.html#games" class="btn btn-ghost">← 返回作品集</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <div class="footer-logo"><span class="logo-bracket">[</span>盛洁 · 游戏策划<span class="logo-bracket">]</span></div>
+          <p>深圳技术大学 · 计算机科学与技术 · 应届生</p>
+        </div>
+        <div class="footer-links">
+          <a href="mailto:sj200403272021@163.com">sj200403272021@163.com</a>
+          <span class="footer-dot">·</span>
+          <a href="tel:13414470758">13414470758</a>
+          <span class="footer-dot">·</span>
+          <span>深圳</span>
+        </div>
+      </div>
+      <div class="footer-copy"><p>作品集 · 2026</p></div>
+    </div>
+  </footer>
+
+</body>
+</html>
