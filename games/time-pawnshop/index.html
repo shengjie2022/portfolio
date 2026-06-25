@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>时间当铺 | Time Pawnshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="loading">时间当铺</div>
+  <canvas id="gameCanvas"></canvas>
+  <button id="fullscreenBtn" title="全屏">⛶ 全屏</button>
+
+  <script src="js/engine.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/game.js"></script>
+  <script>
+    window.addEventListener('load', () => {
+      document.getElementById('loading').style.display = 'none';
+      const game = new Game();
+      game.run();
+
+      // 全屏切换
+      document.getElementById('fullscreenBtn').addEventListener('click', () => {
+        const el = document.documentElement;
+        if (!document.fullscreenElement) {
+          (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen).call(el);
+        } else {
+          (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen).call(document);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
