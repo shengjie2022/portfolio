@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>Debug Main File Paths</title></head>
+<body style="background:#000;padding:20px">
+<canvas id="canvas3" width="320" height="240" style="border:2px solid #2a2a1a;image-rendering:pixelated"></canvas>
+<script>
+var ctx = document.getElementById('canvas3').getContext('2d');
+var W = 320, H = 240;
+var PALETTE = {
+  BG:'#08080a', BG2:'#111108', BG3:'#1a1a0e', BORDER:'#2a2a1a',
+  TEXT:'#d4c8a0', TEXT_DIM:'#7a7050', TEXT_DARK:'#4a4830',
+  ACCENT:'#d4a020', ACCENT_HI:'#f0c040', DANGER:'#cc4422',
+  SUCCESS:'#44aa44', F_IRON:'#44aa44', F_SALVAGE:'#ffaa00', F_ZERO:'#44ff88',
+  F_RUST:'#cc3333', F_PURE:'#88cc44', F_ASH:'#888888'
+};
+var FONT = {};
+
+// Exactly copied from main file
+function hasNonBitmapChar(text) {
+  if (!text) return false;
+  for (var ch of text) { if (!FONT[ch.toUpperCase()]) return true; }
+  return false;
+}
+function pxTextNative(ctx, text, x, y, scale, color) {
+  ctx.save();
+  try {
+    var fontSize = Math.max(11, Math.round(8 * scale));
+    ctx.fillStyle = color;
+    ctx.font = fontSize + "px 'Microsoft YaHei', 'SimHei', monospace";
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillText(text, Math.floor(x), Math.floor(y) + Math.round(6 * scale));
+  } finally { ctx.restore(); }
+  var w = 0;
+  for (var ch of text) { w += (FONT[ch.toUpperCase()] ? 6 : 14) * scale; }
+  return x + w;
+}
+function pxText(ctx, text, x, y, scale, color) {
+  if (!text) return x;
+  return pxTextNative(ctx, text, x, y, scale, color);
+}
+function fill(ctx, x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
+}
+function border(ctx, x, y, w, h, color, lineW) {
+  if (lineW === undefined) lineW = 1;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineW;
+  ctx.strokeRect(Math.floor(x) + 0.5, Math.floor(y) + 0.5, Math.floor(w) - 1, Math.floor(h) - 1);
+}
+function crtLines(ctx, W, H, alpha) {
+  if (alpha === undefined) alpha = 0.07;
+  ctx.fillStyle = 'rgba(0,0,0,' + alpha + ')';
+  for (var sy = 0; sy < H; sy += 2) ctx.fillRect(0, sy, W, 1);
+}
+function vignette(ctx, W, H) {
+  var g = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.8);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.45)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+function drawFactionIcon(ctx, ox, oy, faction, scale) {
+  var s = scale;
+  var colors = {
+    SALVAGE:[PALETTE.F_SALVAGE,'#cc8800'], ASH:[PALETTE.F_ASH,'#666666'],
+    RUST:[PALETTE.F_RUST,'#aa2222'], IRON:[PALETTE.F_IRON,'#338833'],
+    PURE:[PALETTE.F_PURE,'#66aa33'], ZERO:[PALETTE.F_ZERO,'#33cc66']
+  };
+  var c = colors[faction] ? colors[faction][0] : PALETTE.TEXT;
+  var cd = colors[faction] ? colors[faction][1] : PALETTE.TEXT_DIM;
+  fill(ctx, ox+1*s, oy+1*s, 10*s, 10*s, c+'33');
+  fill(ctx, ox+2*s, oy+2*s, 8*s, 8*s, c+'66');
+  fill(ctx, ox+3*s, oy+3*s, 6*s, 6*s, c);
+  if (faction === 'IRON') {
+    fill(ctx, ox+4*s, oy+2*s, 4*s, 8*s, cd);
+    fill(ctx, ox+5*s, oy+3*s, 2*s, 6*s, c);
+    fill(ctx, ox+5*s, oy+5*s, 2*s, 2*s, cd);
+  } else if (faction === 'SALVAGE') {
+    fill(ctx, ox+4*s, oy+4*s, 4*s, 4*s, c);
+  } else if (faction === 'ZERO') {
+    fill(ctx, ox+4*s, oy+4*s, 4*s, 4*s, cd);
+    fill(ctx, ox+5*s, oy+5*s, 2*s, 2*s, '#fff');
+    fill(ctx, ox+5*s, oy+3*s, 2*s, 2*s, c);
+    fill(ctx, ox+5*s, oy+7*s, 2*s, 2*s, c);
+    fill(ctx, ox+3*s, oy+5*s, 2*s, 2*s, c);
+    fill(ctx, ox+7*s, oy+5*s, 2*s, 2*s, c);
+  } else if (faction === 'RUST') {
+    fill(ctx, ox+4*s, oy+3*s, 4*s, 4*s, cd);
+    fill(ctx, ox+5*s, oy+4*s, 2*s, 2*s, c);
+    fill(ctx, ox+4*s, oy+7*s, 4*s, 2*s, cd);
+  } else if (faction === 'PURE') {
+    fill(ctx, ox+5*s, oy+2*s, 2*s, 8*s, cd);
+    fill(ctx, ox+3*s, oy+4*s, 2*s, 2*s, c);
+    fill(ctx, ox+7*s, oy+4*s, 2*s, 2*s, c);
+    fill(ctx, ox+3*s, oy+6*s, 2*s, 2*s, c);
+    fill(ctx, ox+7*s, oy+6*s, 2*s, 2*s, c);
+  }
+}
+
+// Exact copy of renderFactionsScene from main file
+function renderFactionsScene() {
+  fill(ctx, 0, 0, W, H, PALETTE.BG);
+  ctx.fillStyle = PALETTE.BG2; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = PALETTE.BG3; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = PALETTE.BORDER + '22'; ctx.lineWidth = 1;
+  for (var gx = 0; gx < W; gx += 16) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+  for (var gy = 0; gy < H; gy += 16) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+  fill(ctx, 0, 0, W, 20, PALETTE.BG3);
+  border(ctx, 0, 0, W, 20, PALETTE.ACCENT);
+  pxText(ctx, '\u2605 \u6D3E\u7CFB\u58F0\u671B \u2605', 4, 6, 1.2, PALETTE.ACCENT);
+  pxText(ctx, '\u56DE:24   \u788D\u7247: 3/7   \u79EF\u5206: 4280', 180, 6, 1, PALETTE.TEXT_DIM);
+
+  var factions = [
+    { id: '\u94C1\u523A\u810A\u690E', color: PALETTE.F_IRON, rep: 2, level: '\u4FE1\u4EFB', rank: '\u8D85\u7EA7\u4F1A\u5458',
+      desc: '\u79E9\u5E8F\u3001\u7EAA\u5F8B\u3001\u9057\u4EA7',
+      likes: '\u670D\u4ECE\u3001\u6B66\u5668\u3001\u79E9\u5E8F', dislikes: '\u6CA6\u4E71\u3001\u53D8\u5F02\u8005',
+      discount: -20, missions: 3, totalM: 3, border: PALETTE.F_IRON },
+    { id: '\u6253\u6377\u8054\u76DF', color: PALETTE.F_SALVAGE, rep: 1, level: '\u53CB\u597D', rank: '\u4FE1\u4EFB',
+      desc: '\u6536\u96C6\u65E7\u6280\u672F\u3002\u53CD\u7070\u7106\u6D01',
+      likes: '\u6280\u672F\u3001\u6253\u6377\u3001\u8001\u8BB0\u5F55', dislikes: '\u7070\u7106\u6559\u4F1A',
+      discount: -10, missions: 2, totalM: 3, border: PALETTE.F_SALVAGE },
+    { id: '\u96F7\u70F9\u63A2\u7D22', color: PALETTE.F_ZERO, rep: 1, level: '\u53CB\u597D', rank: '\u5408\u4F5C\u4F19\u4F34',
+      desc: '\u771F\u76F8\u5C31\u5728\u90A3\u91CC',
+      likes: '\u771F\u76F8\u3001\u788D\u7247\u3001\u8BB0\u5F55', dislikes: '\u5C01\u9500',
+      discount: -10, missions: 1, totalM: 3, border: PALETTE.F_ZERO },
+    { id: '\u94FD\u8F6E\u5E02\u573A', color: PALETTE.F_RUST, rep: 0, level: '\u4E2D\u7ACB', rank: '\u6B63\u5E38',
+      desc: '\u552E\u5586\u4E00\u5207\u3002\u95EE\u9898\u5374\u4E0D\u95EE',
+      likes: '\u94B1\u5E01\u3001\u60C5\u62A5\u3001\u8F6C\u8FD0', dislikes: '\u6218\u4E89',
+      discount: 0, missions: 0, totalM: 3, border: PALETTE.F_RUST },
+    { id: '\u7EAF\u7D20\u571F\u5730', color: PALETTE.F_PURE, rep: -1, level: '\u654C\u89C6', rank: '\u907F\u5F00',
+      desc: '\u4FDD\u62A4\u98DF\u7269\u3002\u4FDD\u62A4\u751F\u547D',
+      likes: '\u98DF\u7269\u3001\u6C34\u6E90\u3001\u5E73\u548C', dislikes: '\u4F9B\u5E94\u5A01\u80C1',
+      discount: 15, missions: 0, totalM: 3, border: PALETTE.TEXT_DIM },
+    { id: '\u7070\u7106\u4EB2\u65CF', color: PALETTE.F_ASH, rep: -1, level: '\u654C\u89C6', rank: '\u907F\u5F00',
+      desc: '\u51C0\u5316\u5E9F\u571F\u3002\u6B8B\u706D\u53D8\u5F02\u8005',
+      likes: '\u79E9\u5E8F\u3001\u533B\u836F\u3001\u7EAF\u51C0', dislikes: '\u53D8\u5F02\u8005\u3001\u6253\u6377\u8005',
+      discount: 15, missions: 0, totalM: 3, border: PALETTE.TEXT_DIM },
+  ];
+
+  factions.forEach(function(f, i) {
+    var fy = 24 + i * 35;
+    var fx = 4;
+    var fw = W - 8;
+    fill(ctx, fx, fy, fw, 33, PALETTE.BG2);
+    border(ctx, fx, fy, fw, 33, f.border);
+
+    var iconKey = f.id === '\u94C1\u523A\u810A\u690E' ? 'IRON' :
+                  f.id === '\u6253\u6377\u8054\u76DF' ? 'SALVAGE' :
+                  f.id === '\u96F7\u70F9\u63A2\u7D22' ? 'ZERO' :
+                  f.id === '\u94FD\u8F6E\u5E02\u573A' ? 'RUST' :
+                  f.id === '\u7EAF\u7D20\u571F\u5730' ? 'PURE' : 'ASH';
+    drawFactionIcon(ctx, fx + 4, fy + 4, iconKey, 1.5);
+
+    pxText(ctx, f.id, fx + 30, fy + 6, 1.3, f.color);
+    pxText(ctx, '[' + f.level + ']   \u7B49\u7EA7: ' + f.rank, fx + 30, fy + 16, 1, PALETTE.TEXT_DIM);
+
+    var barStart = fx + 160;
+    pxText(ctx, '\u58F0:', barStart, fy + 10, 1, PALETTE.TEXT_DIM);
+    var labels = ['\u654C', '\u65E0', '\u4E2D', '\u53CB', '\u4FE1'];
+    for (var r = 0; r < 5; r++) {
+      var filled = r <= f.rep + 2;
+      fill(ctx, barStart + 28 + r * 10, fy + 4, 8, 6, filled ? f.color : '#222');
+      fill(ctx, barStart + 28 + r * 10, fy + 10, 8, 3, filled ? f.color + '88' : '#111');
+      pxText(ctx, labels[r], barStart + 28 + r * 10, fy + 14, 1, PALETTE.TEXT_DARK);
+    }
+
+    var disc = f.discount >= 0 ? '+' + f.discount + '%' : f.discount + '%';
+    pxText(ctx, disc + '\u5546\u5E97', barStart + 85, fy + 10, 1,
+           f.discount < 0 ? PALETTE.SUCCESS : (f.discount > 0 ? PALETTE.DANGER : PALETTE.TEXT_DIM));
+    pxText(ctx, f.desc, fx + 30, fy + 24, 1, PALETTE.TEXT_DIM);
+
+    var questDone = f.missions;
+    pxText(ctx, '\u4EFB\u52A1:', barStart + 85, fy + 24, 1, PALETTE.TEXT_DIM);
+    for (var q = 0; q < f.totalM; q++) {
+      fill(ctx, barStart + 130 + q * 10, fy + 24, 8, 5,
+           q < questDone ? PALETTE.ACCENT : PALETTE.BG3);
+      border(ctx, barStart + 130 + q * 10, fy + 24, 8, 5, PALETTE.BORDER);
+    }
+  });
+
+  fill(ctx, 0, H - 20, W, 20, PALETTE.BG3);
+  border(ctx, 0, H - 20, W, 20, PALETTE.ACCENT);
+  pxText(ctx, '[\u70B9\u51FB\u6D3E\u7CFB] \u67E5\u770B\u4EFB\u52A1   [\u4EFB] \u6D3E\u7CFB\u4EFB\u52A1   [\u5546] \u5546\u4E1A\u5E02   [\u8FD4] \u8FD4\u56DE', 4, H - 14, 1, PALETTE.TEXT_DIM);
+
+  crtLines(ctx, W, H);
+  vignette(ctx, W, H);
+}
+
+// Test with a single render call
+renderFactionsScene();
+console.log('Single render done');
+
+// Also animate to check if animation loop fixes anything
+function animate() {
+  renderFactionsScene();
+  requestAnimationFrame(animate);
+}
+document.getElementById('canvas3').addEventListener('click', function() {
+  console.log('Canvas clicked - starting animation loop');
+  animate();
+});
+</script>
+<p style="color:#7a7050;font-size:12px">点击画布开始动画循环 | 正常：派系文字应该一直在</p>
+</body>
+</html>
