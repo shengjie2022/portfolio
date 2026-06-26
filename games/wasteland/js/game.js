@@ -114,15 +114,39 @@ class Game {
             eventTypesSeen: {}, crewRecruited: 0, crewHealed: 0,
             crewDeliveries: {}, townsVisited: new Set(),
             lastTradeRecords: {}, // { townId_goodKey: { cost, amount } }
-            crewExp: {} // { crewId: exp }
+            crewExp: {}, // { crewId: exp }
+            // v3.0 新增
+            factionTrades: 0, // 派系折扣交易次数
+            peacefulResolutions: 0, // 非暴力解决次数
+            freshDeliveries: 0, // 新鲜货物送达次数
+            perishableProfit: 0, // 易腐货物累计利润
+            collectiblesFound: new Set(), // 收藏品
+            oldWorldRecordsFound: new Set(), // 旧世界记录
+            crewStoriesComplete: new Set(), // 已完成的乘员故事
+            bondSkillsActivated: new Set(), // 已激活的羁绊技能
+            endingsAchieved: new Set(), // 已达成的结局
+            gamesCompleted: 0, // 完成游戏局数
+            trueEndingChoice: null, // 真结局选择
+            activeWarEvents: [], // 当前活跃的派系战争事件
+            factionRepHistory: {} // 派系声望变化历史
         };
         this.achievements = {};
         this.pendingAchievements = [];
         this._turnsPlayed = 0;
+        // v3.0 新增状态
+        this.factionRep = {}; // { factionId: score } -2 to +2
+        this.zeroFragments = []; // ['fragment_1', ...]
+        this.collectibles = []; // ['rec_1', 'bad_sal', ...]
+        this.activeMissions = {}; // { factionId: { missionId: nodeIndex } }
+        this.completedMissions = {}; // { factionId: Set of completed missionIds }
+        this.crewBonds = {}; // { crewId: { withId: bondLevel, flags: [], storyNode: 0 } }
+        this.storyFlags = {}; // 全局剧情标记
+        this.unlockedFactionMods = []; // 已解锁的派系改装
+        this.endingTriggered = null; // 触发的结局ID
     }
 
     // ========== 存档系统 ==========
-    static get SAVE_KEY() { return 'wasteland_save_v2'; }
+    static get SAVE_KEY() { return 'wasteland_save_v3'; }
 
     saveGame() {
         const saveData = {
@@ -137,10 +161,29 @@ class Game {
             log: this.log.slice(-50),
             stats: this._cloneStats(this.stats),
             achievements: this.achievements,
-            _turnsPlayed: this._turnsPlayed
+            _turnsPlayed: this._turnsPlayed,
+            // v3.0 新增
+            factionRep: this.factionRep,
+            zeroFragments: this.zeroFragments,
+            collectibles: this.collectibles,
+            activeMissions: this.activeMissions,
+            completedMissions: this._serializeCompletedMissions(),
+            crewBonds: this.crewBonds,
+            storyFlags: this.storyFlags,
+            unlockedFactionMods: this.unlockedFactionMods,
+            endingTriggered: this.endingTriggered,
+            activeWarEvents: this.activeWarEvents
         };
         localStorage.setItem(Game.SAVE_KEY, JSON.stringify(saveData));
         return true;
+    }
+
+    _serializeCompletedMissions() {
+        const serialized = {};
+        for (const [k, v] of Object.entries(this.completedMissions)) {
+            serialized[k] = v instanceof Set ? [...v] : v;
+        }
+        return serialized;
     }
 
     loadGame() {
@@ -168,8 +211,25 @@ class Game {
             if (this.stats.townsVisited && !this.stats.townsVisited.add) {
                 this.stats.townsVisited = new Set(this.stats.townsVisited);
             }
+            // v3.0: 确保 Set 字段正确恢复
+            for (const field of ['collectiblesFound', 'oldWorldRecordsFound', 'crewStoriesComplete', 'bondSkillsActivated', 'endingsAchieved']) {
+                if (this.stats[field] && !this.stats[field].add) {
+                    this.stats[field] = new Set(this.stats[field]);
+                }
+            }
             this.achievements = data.achievements || {};
             this._turnsPlayed = data._turnsPlayed || 0;
+            // v3.0 新增字段
+            this.factionRep = data.factionRep || this._initFactionRep();
+            this.zeroFragments = data.zeroFragments || [];
+            this.collectibles = data.collectibles || [];
+            this.activeMissions = data.activeMissions || {};
+            this.completedMissions = this._deserializeCompletedMissions(data.completedMissions);
+            this.crewBonds = data.crewBonds || {};
+            this.storyFlags = data.storyFlags || {};
+            this.unlockedFactionMods = data.unlockedFactionMods || [];
+            this.endingTriggered = data.endingTriggered || null;
+            this.activeWarEvents = data.activeWarEvents || [];
             // 恢复当前城镇引用
             if (this.map && data.currentTownId !== undefined) {
                 this.currentTown = this.map.towns.find(t => t.id === data.currentTownId) || null;
@@ -182,6 +242,21 @@ class Game {
         } catch (e) {
             return false;
         }
+    }
+
+    _deserializeCompletedMissions(data) {
+        if (!data) return {};
+        const result = {};
+        for (const [k, v] of Object.entries(data)) {
+            result[k] = v instanceof Set ? new Set(v) : new Set(v);
+        }
+        return result;
+    }
+
+    _initFactionRep() {
+        const rep = {};
+        for (const fid of Object.keys(FACTIONS)) rep[fid] = 0;
+        return rep;
     }
 
     hasSave() {
@@ -227,10 +302,27 @@ class Game {
             survivorsHelped: 0, vehiclesSearched: 0, breakdownsFixed: 0,
             eventTypesSeen: {}, crewRecruited: 0, crewHealed: 0,
             crewDeliveries: {}, townsVisited: new Set(),
-            lastTradeRecords: {}, crewExp: {}
+            lastTradeRecords: {}, crewExp: {},
+            factionTrades: 0, peacefulResolutions: 0, freshDeliveries: 0,
+            perishableProfit: 0, collectiblesFound: new Set(),
+            oldWorldRecordsFound: new Set(), crewStoriesComplete: new Set(),
+            bondSkillsActivated: new Set(), endingsAchieved: new Set(),
+            gamesCompleted: 0, trueEndingChoice: null,
+            activeWarEvents: [], factionRepHistory: {}
         };
         this.achievements = {};
         this.pendingAchievements = [];
+        // v3.0 初始化
+        this.factionRep = this._initFactionRep();
+        this.zeroFragments = [];
+        this.collectibles = [];
+        this.activeMissions = {};
+        this.completedMissions = {};
+        this.crewBonds = {};
+        this.storyFlags = {};
+        this.unlockedFactionMods = [];
+        this.endingTriggered = null;
+        this.activeWarEvents = [];
         this.generateMap(mode === 'speed' ? 5 : 8);
         this.initVehicle();
         this.initCrew();
@@ -242,6 +334,8 @@ class Game {
         this.saveGame();
         this.addLog('你的货车轰鸣着启动了，废土快递之旅开始！');
         this.addLog(`当前位置：${this.currentTown.name}（${TOWN_TYPES[this.currentTown.type].name}）`);
+        // 随机触发一个派系战争事件
+        this._tryTriggerFactionWar();
     }
 
     // ========== 地图生成 ==========
@@ -269,9 +363,11 @@ class Game {
 
             const typeKeys = Object.keys(TOWN_TYPES);
             const type = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+            const factionKeys = Object.keys(FACTIONS);
+            const faction = factionKeys[Math.floor(Math.random() * factionKeys.length)];
 
             this.map.towns.push({
-                id: i, name, type, x, y, visited: false,
+                id: i, name, type, x, y, visited: false, faction,
                 goods: this.generateTownGoods(type),
                 mods: this.generateTownMods(type),
                 availableCrew: i === 0 ? [] : this.maybeGenerateCrew(),
@@ -420,7 +516,9 @@ class Game {
         let stats = {
             speed: v.baseSpeed, armor: v.baseArmor, cargoSpace: v.baseCargoSpace,
             combatBonus: 0, detection: 0, fuelEfficiency: 0,
-            eventWarning: 0, lootBonus: 0
+            eventWarning: 0, lootBonus: 0, foodDecayRate: 0,
+            banditZeroDmgChance: 0, battleAutoRepair: 0, routeInfoBonus: 0, fuelBonus: 0,
+            radiationResist: 0
         };
         const setCounts = {};
         for (const slot of Object.keys(v.mods)) {
@@ -438,6 +536,15 @@ class Game {
             const roleData = CREW_ROLES[member.role];
             for (const [stat, val] of Object.entries(roleData.effect)) {
                 if (stats[stat] !== undefined) stats[stat] += val * member.level;
+            }
+        }
+        // v3.0: 羁绊组合技能加成
+        const activeBonds = this._getActiveBondSkills();
+        for (const skill of activeBonds) {
+            if (skill.bonus) {
+                for (const [stat, val] of Object.entries(skill.bonus)) {
+                    if (stats[stat] !== undefined) stats[stat] += val;
+                }
             }
         }
         this.activeSetBonuses = [];
@@ -461,7 +568,8 @@ class Game {
 
     getUsedCargoSpace() {
         let used = 0;
-        for (const [key, amount] of Object.entries(this.vehicle.cargo)) {
+        for (const [key, data] of Object.entries(this.vehicle.cargo)) {
+            const amount = typeof data === 'object' ? data.amount : data;
             used += amount * (GOODS[key]?.weight || 1);
         }
         return Math.round(used * 10) / 10;
@@ -705,6 +813,8 @@ class Game {
         this._turnsPlayed++;
         this.vehicle.fuel = Math.max(0, this.vehicle.fuel - tp.fuelPerSegment);
         this.applySanityLoss(5);
+        // v3.0: 货物时效衰减
+        this._decayPerishables();
         for (const order of this.activeOrders) {
             order.turnsLeft--;
             if (order.turnsLeft <= 0) {
@@ -715,6 +825,10 @@ class Game {
         this.stats.distanceTraveled += tp.route.distance / tp.totalSegments;
         const sanityEvents = this.checkSanityEvents();
         for (const e of sanityEvents) this.addLog(e.message);
+        // v3.0: 检查零点碎片发现
+        const fragResult = this._tryDiscoverZeroFragment(tp);
+        // v3.0: 派系战争事件影响
+        this._applyFactionWarEffects(tp);
         if (this.vehicle.fuel <= 0) {
             this.state = 'gameover';
             audio.failure();
@@ -1128,13 +1242,25 @@ class Game {
     }
 
     loseSomeCargo() {
-        const cargoKeys = Object.keys(this.vehicle.cargo).filter(k => this.vehicle.cargo[k] > 0);
+        const cargoKeys = Object.keys(this.vehicle.cargo).filter(k => {
+            const data = this.vehicle.cargo[k];
+            const amt = typeof data === 'object' ? data.amount : data;
+            return amt > 0;
+        });
         if (cargoKeys.length === 0) return '';
         const key = cargoKeys[Math.floor(Math.random() * cargoKeys.length)];
-        const amount = Math.min(this.vehicle.cargo[key], 1 + Math.floor(Math.random() * 3));
-        this.vehicle.cargo[key] -= amount;
-        if (this.vehicle.cargo[key] <= 0) delete this.vehicle.cargo[key];
-        return `，丢失了${amount}个${GOODS[key]?.name || key}`;
+        const data = this.vehicle.cargo[key];
+        if (typeof data === 'object') {
+            const amount = Math.min(data.amount, 1 + Math.floor(Math.random() * 3));
+            data.amount -= amount;
+            if (data.amount <= 0) delete this.vehicle.cargo[key];
+            return `，丢失了${amount}个${GOODS[key]?.name || key}`;
+        } else {
+            const amount = Math.min(data, 1 + Math.floor(Math.random() * 3));
+            this.vehicle.cargo[key] -= amount;
+            if (this.vehicle.cargo[key] <= 0) delete this.vehicle.cargo[key];
+            return `，丢失了${amount}个${GOODS[key]?.name || key}`;
+        }
     }
 
     // ========== 交易系统 ==========
@@ -1142,7 +1268,11 @@ class Game {
         const town = this.currentTown;
         if (!town || !town.goods[goodKey]) return { success: false, msg: '商品不可用' };
         const good = town.goods[goodKey];
-        const totalCost = good.buyPrice * amount;
+        // v3.0: 派系声望价格修正
+        const factionId = town.faction || this._getTownFaction(town);
+        const repLevel = this._getRepLevel(factionId);
+        const priceMult = repLevel.priceMult;
+        const totalCost = Math.round(good.buyPrice * amount * priceMult);
         const weight = amount * (GOODS[goodKey]?.weight || 1);
         const stats = this.getVehicleStats();
         const currentUsed = this.getUsedCargoSpace();
@@ -1151,29 +1281,63 @@ class Game {
         if (good.stock < amount) return { success: false, msg: '库存不足' };
         this.money -= totalCost;
         good.stock -= amount;
-        this.vehicle.cargo[goodKey] = (this.vehicle.cargo[goodKey] || 0) + amount;
+        // v3.0: 易腐货物带质量
+        if (PERISHABLE_GOODS.includes(goodKey)) {
+            if (!this.vehicle.cargo[goodKey]) this.vehicle.cargo[goodKey] = { amount: 0, quality: 100 };
+            this.vehicle.cargo[goodKey].amount += amount;
+            this.vehicle.cargo[goodKey].quality = Math.min(100, this.vehicle.cargo[goodKey].quality);
+        } else {
+            this.vehicle.cargo[goodKey] = (this.vehicle.cargo[goodKey] || 0) + amount;
+        }
         const recordKey = `${town.id}_${goodKey}`;
         this.stats.lastTradeRecords[recordKey] = { cost: totalCost, amount };
         const townTradeKey = `sametown_${town.id}_${goodKey}`;
         this.stats[townTradeKey] = (this.stats[townTradeKey] || 0) + 1;
+        // v3.0: 派系交易计数
+        if (priceMult < 1.0) {
+            this.stats.factionTrades++;
+            this.addFactionRep(factionId, 0.1);
+        }
         audio.trade();
         this.saveGame();
         this.checkAchievements();
-        return { success: true, msg: `购买${GOODS[goodKey].name}×${amount}，花费${totalCost}瓶盖` };
+        return { success: true, msg: `购买${GOODS[goodKey].name}×${amount}，花费${totalCost}瓶盖${priceMult < 1 ? '（派系折扣-' + Math.round((1-priceMult)*100) + '%）' : ''}` };
     }
 
     sellGoods(goodKey, amount) {
         const town = this.currentTown;
         if (!town) return { success: false, msg: '不在城镇' };
-        const currentAmount = this.vehicle.cargo[goodKey] || 0;
+        // v3.0: 处理易腐货物格式
+        let currentAmount, cargoQuality = null;
+        const cargoData = this.vehicle.cargo[goodKey];
+        if (PERISHABLE_GOODS.includes(goodKey) && typeof cargoData === 'object') {
+            currentAmount = cargoData.amount;
+            cargoQuality = cargoData.quality;
+        } else {
+            currentAmount = cargoData || 0;
+        }
         if (currentAmount < amount) return { success: false, msg: '数量不足' };
-        const sellPrice = town.goods[goodKey]?.sellPrice ||
+        const factionId = town.faction || this._getTownFaction(town);
+        const repLevel = this._getRepLevel(factionId);
+        let baseSellPrice = town.goods[goodKey]?.sellPrice ||
             Math.round(GOODS[goodKey].basePrice * town.priceModifier * 0.5);
+        // v3.0: 质量折扣
+        if (cargoQuality !== null) {
+            const ql = this._getQualityLevel(cargoQuality);
+            baseSellPrice = Math.round(baseSellPrice * ql.priceMult);
+        }
+        const sellPrice = Math.round(baseSellPrice * repLevel.priceMult);
         const totalEarned = sellPrice * amount;
         this.money += totalEarned;
         this.stats.moneyEarned += totalEarned;
-        this.vehicle.cargo[goodKey] -= amount;
-        if (this.vehicle.cargo[goodKey] <= 0) delete this.vehicle.cargo[goodKey];
+        // v3.0: 更新货物数量
+        if (PERISHABLE_GOODS.includes(goodKey)) {
+            this.vehicle.cargo[goodKey].amount -= amount;
+            if (this.vehicle.cargo[goodKey].amount <= 0) delete this.vehicle.cargo[goodKey];
+        } else {
+            this.vehicle.cargo[goodKey] -= amount;
+            if (this.vehicle.cargo[goodKey] <= 0) delete this.vehicle.cargo[goodKey];
+        }
         if (town.goods[goodKey]) town.goods[goodKey].stock += amount;
         const recordKey = `${town.id}_${goodKey}`;
         const record = this.stats.lastTradeRecords[recordKey];
@@ -1185,6 +1349,10 @@ class Game {
                 const profitPct = (profit / record.cost) * 100;
                 if (profitPct > (this.stats._maxTradeProfitPct || 0)) {
                     this.stats._maxTradeProfitPct = profitPct;
+                }
+                // v3.0: 易腐货物利润统计
+                if (PERISHABLE_GOODS.includes(goodKey)) {
+                    this.stats.perishableProfit += profit;
                 }
             }
             delete this.stats.lastTradeRecords[recordKey];
@@ -1402,4 +1570,644 @@ class Game {
         }
         return arr;
     }
+
+    // ============================================================
+    // v3.0 新增系统方法
+    // ============================================================
+
+    // ========== 派系声望系统 ==========
+    getFactionRep(factionId) {
+        return this.factionRep[factionId] ?? 0;
+    }
+
+    setFactionRep(factionId, score) {
+        this.factionRep[factionId] = Math.max(-2, Math.min(2, score));
+    }
+
+    addFactionRep(factionId, delta) {
+        if (!factionId) return;
+        const current = this.factionRep[factionId] ?? 0;
+        this.setFactionRep(factionId, current + delta);
+    }
+
+    getAllFactionRep() {
+        const result = {};
+        for (const fid of Object.keys(FACTIONS)) {
+            result[fid] = this.factionRep[fid] ?? 0;
+        }
+        return result;
+    }
+
+    _getRepLevel(factionId) {
+        const score = this.factionRep[factionId] ?? 0;
+        return FACTION_REP_LEVELS.find(r => r.level === score) || FACTION_REP_LEVELS[2];
+    }
+
+    _getTownFaction(town) {
+        const candidates = TOWN_FACTION_MAP[town.type] || [];
+        return candidates[Math.floor(Math.random() * candidates.length)] || null;
+    }
+
+    // 派系间关系影响派系声望（对抗行为同时影响关系方）
+    applyFactionAction(factionA, factionB, delta) {
+        this.addFactionRep(factionA, delta);
+        const rel = FACTION_RELATIONS[factionA]?.[factionB];
+        if (rel !== undefined) {
+            this.addFactionRep(factionB, delta * rel * 0.5);
+        }
+    }
+
+    // ========== 派系任务系统 ==========
+    getAvailableMissions(factionId) {
+        const chains = FACTION_MISSIONS[factionId] || [];
+        const result = [];
+        for (const chain of chains) {
+            const currentNode = this.activeMissions[factionId]?.[chain.id] ?? 0;
+            const completed = this.completedMissions[factionId]?.has(chain.id);
+            if (!completed) {
+                result.push({
+                    ...chain,
+                    currentNode,
+                    progress: `${currentNode}/${chain.nodes.length}`,
+                    isComplete: currentNode >= chain.nodes.length
+                });
+            }
+        }
+        return result;
+    }
+
+    startMission(factionId, missionId) {
+        if (!this.activeMissions[factionId]) this.activeMissions[factionId] = {};
+        this.activeMissions[factionId][missionId] = 0;
+        this.addFactionRep(factionId, 0.5);
+        audio.click();
+        this.addLog(`📜 接取派系任务：${FACTION_MISSIONS[factionId].find(m => m.id === missionId)?.name}`);
+        this.saveGame();
+    }
+
+    advanceMission(factionId, missionId) {
+        const chains = FACTION_MISSIONS[factionId];
+        if (!chains) return;
+        const chain = chains.find(c => c.id === missionId);
+        if (!chain) return;
+        const currentNode = this.activeMissions[factionId][missionId] ?? 0;
+        if (currentNode >= chain.nodes.length) return;
+        const node = chain.nodes[currentNode];
+        // 应用奖励
+        if (node.reward) {
+            if (node.reward.caps) this.money += node.reward.caps;
+            if (node.reward.caps) this.stats.moneyEarned += node.reward.caps;
+            if (node.reward.factionMod) {
+                if (!this.unlockedFactionMods.includes(node.reward.factionMod)) {
+                    this.unlockedFactionMods.push(node.reward.factionMod);
+                }
+            }
+            if (node.reward.zeroFragment) {
+                this._addZeroFragment();
+            }
+        }
+        this.activeMissions[factionId][missionId]++;
+        const nextNode = this.activeMissions[factionId][missionId];
+        if (nextNode >= chain.nodes.length) {
+            // 任务链完成
+            if (!this.completedMissions[factionId]) this.completedMissions[factionId] = new Set();
+            this.completedMissions[factionId].add(missionId);
+            audio.success();
+            this.addLog(`✅ 完成任务链：${chain.name}（${factionId}派系）`);
+            this.addFactionRep(factionId, 1);
+            this.checkAchievements();
+        }
+        this.saveGame();
+    }
+
+    getCurrentMissionNode(factionId) {
+        const missions = this.activeMissions[factionId] || {};
+        const result = {};
+        for (const [missionId, nodeIndex] of Object.entries(missions)) {
+            const chain = FACTION_MISSIONS[factionId]?.find(c => c.id === missionId);
+            if (chain && nodeIndex < chain.nodes.length) {
+                result[missionId] = {
+                    ...chain.nodes[nodeIndex],
+                    nodeIndex,
+                    missionName: chain.name,
+                    progress: `${nodeIndex + 1}/${chain.nodes.length}`
+                };
+            }
+        }
+        return result;
+    }
+
+    // ========== 货物时效系统 ==========
+    _decayPerishables() {
+        const stats = this.getVehicleStats();
+        const baseDecay = 10; // 每段旅程基础腐败量
+        const decayRate = 1 - (stats.foodDecayRate || 0) / 100;
+        const decay = Math.round(baseDecay * decayRate);
+        for (const goodKey of PERISHABLE_GOODS) {
+            const data = this.vehicle.cargo[goodKey];
+            if (!data || typeof data !== 'object') continue;
+            data.quality = Math.max(0, data.quality - decay);
+        }
+    }
+
+    _getQualityLevel(quality) {
+        return QUALITY_LEVELS.find(q => quality >= q.min) || QUALITY_LEVELS[QUALITY_LEVELS.length - 1];
+    }
+
+    getCargoDisplay(key) {
+        const data = this.vehicle.cargo[key];
+        if (PERISHABLE_GOODS.includes(key) && typeof data === 'object') {
+            const ql = this._getQualityLevel(data.quality);
+            return { amount: data.amount, quality: data.quality, qualityName: ql.name, qualityIcon: ql.icon, qualityColor: ql.color };
+        }
+        return { amount: typeof data === 'object' ? data.amount : data };
+    }
+
+    // ========== 乘员羁绊系统 ==========
+    getCrewBond(memberId) {
+        return this.crewBonds[memberId] || { bonds: {}, flags: [], storyNode: 0 };
+    }
+
+    addBondLevel(memberA, memberB, amount = 1) {
+        const idA = memberA.id || memberA;
+        const idB = memberB.id || memberB;
+        if (!this.crewBonds[idA]) this.crewBonds[idA] = { bonds: {}, flags: [], storyNode: 0 };
+        if (!this.crewBonds[idB]) this.crewBonds[idB] = { bonds: {}, flags: [], storyNode: 0 };
+        const current = this.crewBonds[idA].bonds[idB] || 0;
+        this.crewBonds[idA].bonds[idB] = Math.min(3, current + amount);
+        this.crewBonds[idB].bonds[idA] = Math.min(3, current + amount);
+        this._checkBondSkills();
+    }
+
+    getBondLevel(memberA, memberB) {
+        const idA = memberA.id || memberA;
+        const idB = memberB.id || memberB;
+        return this.crewBonds[idA]?.bonds[idB] || 0;
+    }
+
+    getBondStage(level) {
+        return BOND_STAGES[level] || BOND_STAGES[0];
+    }
+
+    _getActiveBondSkills() {
+        const active = [];
+        const processed = new Set();
+        for (const member of this.crew) {
+            const bondData = this.crewBonds[member.id] || {};
+            for (const [otherId, level] of Object.entries(bondData.bonds)) {
+                const pairKey = [member.id, otherId].sort().join('_');
+                if (processed.has(pairKey)) continue;
+                processed.add(pairKey);
+                if (level < 1) continue;
+                const roles = [member.role, otherId].sort();
+                const skillKey = roles.join('_');
+                if (BOND_SKILLS[skillKey]) {
+                    active.push(BOND_SKILLS[skillKey]);
+                    this.stats.bondSkillsActivated.add(skillKey);
+                }
+            }
+        }
+        return active;
+    }
+
+    _checkBondSkills() {
+        const active = this._getActiveBondSkills();
+        if (active.length > 0) {
+            for (const skill of active) {
+                if (!this.stats.bondSkillsActivated.has(skill.name)) {
+                    this.stats.bondSkillsActivated.add(skill.name);
+                    this.addLog(`✨ 羁绊技能激活：${skill.name}——${skill.desc}`);
+                    this.checkAchievements();
+                }
+            }
+        }
+    }
+
+    // 乘员共同旅行时增加羁绊
+    _onCrewTravelTogether() {
+        const eligible = this.crew.filter(c => c.id !== 'crew_starter' && !c.sick);
+        for (let i = 0; i < eligible.length; i++) {
+            for (let j = i + 1; j < eligible.length; j++) {
+                this.addBondLevel(eligible[i].id, eligible[j].id, 0.3);
+            }
+        }
+    }
+
+    // ========== 零点碎片系统 ==========
+    _addZeroFragment(fragmentId = null) {
+        if (fragmentId === null) {
+            // 自动找一块未收集的碎片
+            const collected = new Set(this.zeroFragments);
+            const available = ZERO_FRAGMENTS.filter(f => !collected.has(f.id));
+            if (available.length === 0) return null;
+            fragmentId = available[Math.floor(Math.random() * available.length)].id;
+        }
+        if (this.zeroFragments.includes(fragmentId)) return null;
+        this.zeroFragments.push(fragmentId);
+        const frag = ZERO_FRAGMENTS.find(f => f.id === fragmentId);
+        if (frag) {
+            audio.upgrade();
+            this.addLog(`🔮 获得零点碎片 #${frag.index}：${frag.name}！`);
+            this.addLog(`   线索：${frag.locationHint}`);
+            this.checkAchievements();
+            // 收藏品
+            this.addCollectible('rec_' + frag.id);
+        }
+        this.saveGame();
+        return fragmentId;
+    }
+
+    addCollectible(id) {
+        if (!this.collectibles.includes(id)) {
+            this.collectibles.push(id);
+            // 统计
+            if (id.startsWith('rec_')) this.stats.oldWorldRecordsFound.add(id);
+            this.stats.collectiblesFound.add(id);
+            this.checkAchievements();
+        }
+    }
+
+    _tryDiscoverZeroFragment(travelData) {
+        // 有零点碎片装置时发现概率更高
+        const hasDevice = this.vehicle.mods.radar === 'zer_fragment_device';
+        const baseChance = hasDevice ? 0.05 : 0.015;
+        if (Math.random() < baseChance && this.zeroFragments.length < 7) {
+            const fragId = this._addZeroFragment();
+            if (fragId) return { fragmentFound: true, fragId };
+        }
+        return null;
+    }
+
+    // ========== 派系战争系统 ==========
+    _tryTriggerFactionWar() {
+        // 随机触发一个派系战争事件
+        const possible = FACTION_WAR_EVENTS.filter(e => {
+            return Math.random() < 0.3;
+        });
+        if (possible.length > 0) {
+            const event = possible[Math.floor(Math.random() * possible.length)];
+            this.activeWarEvents.push(event.id);
+            this.addLog(`⚠️ ${event.name}：${event.desc}`);
+        }
+    }
+
+    _applyFactionWarEffects(travelData) {
+        for (const eventId of this.activeWarEvents) {
+            const event = FACTION_WAR_EVENTS.find(e => e.id === eventId);
+            if (!event) continue;
+            if (event.effect?.routeDanger) {
+                // 路线危险度已经被影响，这里主要是提示
+            }
+        }
+    }
+
+    // ========== 结局系统 ==========
+    checkEnding() {
+        // 检查所有结局条件，返回触发的结局
+        // 优先级：零点追寻 > 废土独狼 > 派系结局 > 商业传奇
+
+        // 零点追寻者结局
+        if (this.zeroFragments.length >= 7) {
+            return ENDINGS.zero_seeker;
+        }
+
+        // 废土独狼：所有派系声望均未达到友善
+        const allRep = Object.values(this.factionRep);
+        const hasFriendly = allRep.some(r => r >= 1);
+        if (!hasFriendly && this.completedOrders >= this.requiredOrders) {
+            return ENDINGS.lone_wolf;
+        }
+
+        // 派系结局：找到声望最高的派系
+        let maxFaction = null, maxRep = 0;
+        for (const [fid, rep] of Object.entries(this.factionRep)) {
+            if (rep > maxRep) { maxRep = rep; maxFaction = fid; }
+        }
+        if (maxRep >= 1 && this.completedOrders >= this.requiredOrders) {
+            const endingMap = {
+                salvagers: ENDINGS.salvage_king,
+                ashkins: ENDINGS.ash_believer,
+                rustwheel: ENDINGS.rustwheel_partner,
+                ironspine: ENDINGS.iron_alliance,
+                pureearth: ENDINGS.earth_guardian
+            };
+            if (endingMap[maxFaction]) return endingMap[maxFaction];
+        }
+
+        // 商业传奇：净资产超过5000，完成10个订单
+        if (this.money >= 5000 && this.stats.ordersCompleted >= 10) {
+            return ENDINGS.trade_legend;
+        }
+
+        return null;
+    }
+
+    triggerEnding(endingId) {
+        const ending = ENDINGS[endingId];
+        if (!ending) return;
+        this.endingTriggered = endingId;
+        this.stats.endingsAchieved.add(endingId);
+        this.stats.gamesCompleted++;
+        audio.success();
+        this.addLog(`🎉 结局触发：${ending.name}——${ending.desc}`);
+        this.addLog(`   ${ending.flavor}`);
+        this.saveGame();
+        this.checkAchievements();
+    }
+
+    getScore() {
+        let score = 0;
+        score += this.stats.ordersCompleted * SCORE_WEIGHTS.ordersCompleted;
+        score += this.stats.distanceTraveled * SCORE_WEIGHTS.distanceTraveled;
+        score += this.stats.combatsWon * SCORE_WEIGHTS.combatsWon;
+        score += this.stats.moneyEarned * SCORE_WEIGHTS.moneyEarned;
+        score += this.stats.eventsHandled * SCORE_WEIGHTS.eventsHandled;
+        score += Object.keys(this.achievements).length * SCORE_WEIGHTS.achievements;
+        score += this.zeroFragments.length * SCORE_WEIGHTS.zeroFragments;
+        if (this.endingTriggered && SCORE_WEIGHTS.endingBonus[this.endingTriggered]) {
+            score += SCORE_WEIGHTS.endingBonus[this.endingTriggered];
+        }
+        return Math.round(score);
+    }
+
+    // ========== 剧情系统 ==========
+    getAvailableCrewStories() {
+        // 返回有可用剧情节点的乘员
+        const result = [];
+        for (const member of this.crew) {
+            if (member.id === 'crew_starter') continue;
+            const storyData = CREW_STORIES[member.role];
+            if (!storyData) continue;
+            const bondData = this.crewBonds[member.id] || { storyNode: 0 };
+            const nodeIndex = bondData.storyNode || 0;
+            const story = storyData.nodes[nodeIndex];
+            if (!story) continue;
+            const turnMin = story.turnMin || 0;
+            let trigger = story.trigger || 'always';
+            if (trigger === 'auto' && this.turn >= turnMin) {
+                result.push({ member, storyData, node: story, nodeIndex });
+            } else if (trigger === 'flag_' && this.storyFlags[trigger]) {
+                result.push({ member, storyData, node: story, nodeIndex });
+            } else if (trigger === 'always' && this.turn >= turnMin) {
+                result.push({ member, storyData, node: story, nodeIndex });
+            } else if (trigger === 'story_complete') {
+                // 检查羁绊等级
+                const bondStage = this._getMemberBondStage(member.id);
+                if (bondStage >= 3) {
+                    result.push({ member, storyData, node: story, nodeIndex });
+                }
+            }
+        }
+        return result;
+    }
+
+    _getMemberBondStage(memberId) {
+        const bondData = this.crewBonds[memberId] || { bonds: {}, flags: [], storyNode: 0 };
+        let maxBond = 0;
+        for (const lvl of Object.values(bondData.bonds || {})) {
+            maxBond = Math.max(maxBond, lvl);
+        }
+        return maxBond;
+    }
+
+    advanceCrewStory(memberId, storyId, choiceIndex) {
+        const member = this.crew.find(c => c.id === memberId);
+        if (!member) return;
+        const storyData = CREW_STORIES[storyId];
+        if (!storyData) return;
+        const bondData = this.crewBonds[memberId] || { bonds: {}, flags: [], storyNode: 0 };
+        const nodeIndex = bondData.storyNode || 0;
+        const node = storyData.nodes[nodeIndex];
+        if (!node) return;
+        const choice = node.choices[choiceIndex];
+        if (!choice) return;
+        // 应用选择效果
+        if (choice.flag) this.storyFlags[choice.flag] = true;
+        if (choice.bonus) {
+            this.addBondLevel(memberId, 'crew_starter', choice.bonus);
+        }
+        if (choice.rewards) {
+            for (const [key, val] of Object.entries(choice.rewards)) {
+                if (key === 'caps') { this.money += val; this.stats.moneyEarned += val; }
+                if (key === 'zeroFragment') this._addZeroFragment();
+            }
+        }
+        if (choice.reputation_shift) {
+            for (const [fid, delta] of Object.entries(choice.reputation_shift)) {
+                this.addFactionRep(fid, delta);
+            }
+        }
+        if (choice.effect === 'story_advance') {
+            bondData.storyNode++;
+            this.crewBonds[memberId] = bondData;
+            audio.click();
+            this.addLog(`📖 剧情推进：${member.name}——${storyData.title}`);
+        } else if (choice.effect === 'story_complete') {
+            bondData.storyNode = storyData.nodes.length;
+            this.crewBonds[memberId] = bondData;
+            this.stats.crewStoriesComplete.add(storyId);
+            audio.success();
+            this.addLog(`✅ 剧情完成：${member.name}——${storyData.title}`);
+            if (choice.item) this.addCollectible(choice.item);
+        } else if (choice.effect === 'finale_bond') {
+            // 最终结局绑定
+            this.stats.crewStoriesComplete.add(storyId);
+            audio.success();
+        }
+        this.checkAchievements();
+        this.saveGame();
+    }
+
+    // ========== 成就检查增强 ==========
+    checkAchievements() {
+        for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
+            if (this.achievements[id]) continue;
+            if (this.isAchievementUnlocked(achievement)) {
+                this.unlockAchievement(id, achievement);
+            }
+        }
+    }
+
+    isAchievementUnlocked(achievement) {
+        const c = achievement.condition;
+        // 先调用原有逻辑
+        const baseResult = this._isAchievementUnlocked_v2(c);
+        if (baseResult !== undefined) return baseResult;
+        // v3.0 新成就
+        switch (c.type) {
+            case 'all_factions_friendly':
+                return Object.values(this.factionRep).every(r => r >= 1);
+            case 'faction_rep':
+                return Object.values(this.factionRep).some(r => r >= c.value);
+            case 'peaceful_resolutions':
+                return this.stats.peacefulResolutions >= c.value;
+            case 'faction_mission_complete':
+                return Object.values(this.completedMissions).some(s => s.size >= c.value);
+            case 'faction_trades':
+                return this.stats.factionTrades >= c.value;
+            case 'zero_fragments':
+                return this.zeroFragments.length >= c.value;
+            case 'triggered_true_ending':
+                return this.endingTriggered === 'zero_seeker';
+            case 'crew_story_complete':
+                return this.stats.crewStoriesComplete.size >= c.value;
+            case 'all_crew_stories_complete':
+                return this.stats.crewStoriesComplete.size >= Object.keys(CREW_STORIES).length;
+            case 'bond_skill_activated':
+                return this.stats.bondSkillsActivated.size >= c.value;
+            case 'fresh_delivery':
+                return this.stats.freshDeliveries >= 1;
+            case 'perishable_profit':
+                return this.stats.perishableProfit >= c.value;
+            case 'collectibles':
+                return this.stats.collectiblesFound.size >= c.value;
+            case 'all_old_world_records':
+                return this.stats.oldWorldRecordsFound.size >= COLLECTIBLES.old_world_records.length;
+            case 'all_collectibles': {
+                const all = [
+                    ...COLLECTIBLES.old_world_records,
+                    ...COLLECTIBLES.faction_badges,
+                    ...COLLECTIBLES.special_items
+                ];
+                return this.stats.collectiblesFound.size >= all.length;
+            }
+            case 'endings_count':
+                return this.stats.endingsAchieved.size >= c.value;
+            case 'ending_achieved':
+                return this.stats.endingsAchieved.has(c.value);
+            case 'games_completed':
+                return this.stats.gamesCompleted >= c.value;
+            case 'high_score':
+                return this.getScore() >= c.value;
+            case 'true_ending_choice':
+                return this.stats.trueEndingChoice !== null;
+            default:
+                return false;
+        }
+    }
+
+    // 保留原有逻辑的兼容方法
+    _isAchievementUnlocked_v2(c) {
+        const s = this.stats;
+        const v = this.vehicle;
+        switch (c.type) {
+            case 'orders_completed': return s.ordersCompleted >= c.value;
+            case 'distance_traveled': return s.distanceTraveled >= c.value;
+            case 'all_towns_visited': return this.map && s.townsVisited.size >= this.map.towns.length;
+            case 'fuel_efficient_trip': return false;
+            case 'arrive_low_hp': return !!s._arrivedLowHp;
+            case 'first_trade_profit': return !!s._firstTradeProfit;
+            case 'total_trade_profit': return s.totalTradeProfit >= c.value;
+            case 'single_trade_profit_pct': return (s._maxTradeProfitPct || 0) >= c.value;
+            case 'hold_goods_types': return Object.keys(v.cargo).filter(k => v.cargo[k] > 0).length >= c.value;
+            case 'caps_held': return this.money >= c.value;
+            case 'merchant_trades': return s.merchantTrades >= c.value;
+            case 'old_coins_collected': return s.oldCoinsCollected >= c.value;
+            case 'mods_installed': return s.modsInstalled >= c.value;
+            case 'set_bonus_activated': return this.activeSetBonuses.length >= c.value;
+            case 'legendary_mods_owned': {
+                let count = 0;
+                for (const slot of Object.keys(v.mods)) {
+                    const modKey = v.mods[slot];
+                    if (modKey) {
+                        const mod = MODIFICATIONS[modKey] || SPECIAL_MODS[modKey];
+                        if (mod && mod.rarity === 'legendary') count++;
+                    }
+                }
+                return count >= c.value;
+            }
+            case 'all_slots_equipped': return Object.values(v.mods).every(m => m !== null);
+            case 'total_repairs': return s.totalRepairs >= c.value;
+            case 'vehicle_speed': return this.getVehicleStats().speed >= c.value;
+            case 'vehicle_armor': return this.getVehicleStats().armor >= c.value;
+            case 'combats_won': return s.combatsWon >= c.value;
+            case 'consecutive_peaceful': return s.consecutivePeaceful >= c.value;
+            case 'bandits_defeated': return s.banditsDefeated >= c.value;
+            case 'flawless_victory': return s.flawlessVictories >= c.value;
+            case 'total_bribe_spent': return s.totalBribeSpent >= c.value;
+            case 'events_handled': return s.eventsHandled >= c.value;
+            case 'radiation_survived': return s.radiationSurvived >= c.value;
+            case 'consecutive_good_events': return s.consecutiveGoodEvents >= c.value;
+            case 'survivors_helped': return s.survivorsHelped >= c.value;
+            case 'vehicles_searched': return s.vehiclesSearched >= c.value;
+            case 'breakdowns_fixed': return s.breakdownsFixed >= c.value;
+            case 'all_event_types_seen': return Object.keys(s.eventTypesSeen).length >= 6;
+            case 'crew_recruited': return s.crewRecruited >= c.value;
+            case 'crew_count': return this.crew.length >= c.value;
+            case 'crew_all_roles': {
+                const roles = new Set(this.crew.map(c => c.role));
+                return roles.size >= 3;
+            }
+            case 'crew_max_level': return this.crew.some(m => m.level >= c.value);
+            case 'crew_healed': return s.crewHealed >= c.value;
+            case 'crew_sanity_maintained': return this.crew.length > 0 && this.crew.every(m => m.sanity >= c.value);
+            case 'crew_deliveries': return Object.values(s.crewDeliveries).some(d => d >= c.value);
+            case 'fast_delivery': return !!s._fastDelivery;
+            case 'dangerous_orders': return (s._dangerousOrders || 0) >= c.value;
+            case 'long_distance_order': return !!s._longDistanceOrder;
+            case 'perfect_order': return !!s._perfectOrder;
+            case 'all_main_orders': return this.completedOrders >= this.requiredOrders;
+            case 'arrive_no_fuel': return !!s._arrivedNoFuel;
+            case 'deliver_broke': return !!s._deliverBroke;
+            case 'same_town_trade': {
+                for (const key of Object.keys(s)) {
+                    if (key.startsWith('sametown_') && s[key] >= c.value) return true;
+                }
+                return false;
+            }
+            case 'consecutive_fights': return s.consecutiveFights >= c.value;
+            case 'all_crew_sick': return this.crew.length > 1 && this.crew.every(c => c.sick);
+            case 'all_non_hidden_unlocked': {
+                const nonHidden = Object.entries(ACHIEVEMENTS).filter(([, a]) => !a.hidden);
+                return nonHidden.every(([id]) => this.achievements[id]);
+            }
+            default: return undefined; // 未定义，返回undefined表示走v3.0逻辑
+        }
+    }
+
+    // ========== v3.0 结局触发覆盖 ==========
+    completeOrder(orderId) {
+        const idx = this.activeOrders.findIndex(o => o.id === orderId);
+        if (idx === -1) return false;
+        const order = this.activeOrders[idx];
+        if (order.toTown !== this.currentTown.id) return false;
+        this.money += order.reward;
+        this.stats.moneyEarned += order.reward;
+        this.stats.ordersCompleted++;
+        this.completedOrders++;
+        this.activeOrders.splice(idx, 1);
+        audio.success();
+        this.addLog(`✅ 订单完成！获得${order.reward}瓶盖！（${this.completedOrders}/${this.requiredOrders}）`);
+        for (const c of this.crew) {
+            this.stats.crewDeliveries[c.id] = (this.stats.crewDeliveries[c.id] || 0) + 1;
+            this.addCrewExp(c.id, 15);
+        }
+        // v3.0: 检查是否新鲜食物送达
+        if (PERISHABLE_GOODS.includes(order.cargoType)) {
+            const data = this.vehicle.cargo[order.cargoType];
+            if (data && typeof data === 'object' && data.quality >= 100) {
+                this.stats.freshDeliveries++;
+            }
+        }
+        const orderDistance = this.getRouteDistance(order.fromTown, order.toTown);
+        this.checkOrderAchievements(order, orderDistance);
+        this.saveGame();
+        this.checkAchievements();
+        if (this.completedOrders >= this.requiredOrders) {
+            // v3.0: 检查结局
+            const ending = this.checkEnding();
+            if (ending) {
+                this.state = 'victory';
+                this.triggerEnding(ending.id);
+            } else {
+                this.state = 'victory';
+                // 默认胜利
+                this.stats.gamesCompleted++;
+                this.addLog('🎉 恭喜！你完成了所有主要订单，成为废土上最可靠的快递员！');
+            }
+            this.checkAchievements();
+        }
+        return true;
+    }
 }
+
