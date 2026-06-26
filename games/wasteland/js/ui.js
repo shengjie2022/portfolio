@@ -1476,5 +1476,8 @@ let game, ui;
 document.addEventListener('DOMContentLoaded', () => {
     game = new Game();
     ui = new UI(game);
+    // 显式挂到 window，确保 inline onclick 能访问
+    window.game = game;
+    window.ui = ui;
     ui.init();
 });
