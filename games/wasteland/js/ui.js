@@ -389,15 +389,17 @@ class UI {
         }
         const map = this.game.map;
         if (!map) { ctx.restore(); return; }
-        const baseOffX = (w / zoom - 900) / 2;
-        const baseOffY = (h / zoom - 500) / 2;
+        const scaleX = w / 900;
+        const scaleY = h / 500;
+        const baseOffX = (w / zoom - w) / 2;
+        const baseOffY = (h / zoom - h) / 2;
 
         // 绘制路线
         for (const route of map.routes) {
             const from = map.towns[route.from];
             const to = map.towns[route.to];
-            const fx = from.x + baseOffX, fy = from.y + baseOffY;
-            const tx = to.x + baseOffX, ty = to.y + baseOffY;
+            const fx = from.x * scaleX + baseOffX, fy = from.y * scaleY + baseOffY;
+            const tx = to.x * scaleX + baseOffX, ty = to.y * scaleY + baseOffY;
             const danger = route.danger;
             const r = Math.round(100 + danger * 155);
             const g2 = Math.round(150 - danger * 100);
@@ -415,7 +417,7 @@ class UI {
 
         // 绘制城镇
         for (const town of map.towns) {
-            const x = town.x + baseOffX, y = town.y + baseOffY;
+            const x = town.x * scaleX + baseOffX, y = town.y * scaleY + baseOffY;
             const typeData = TOWN_TYPES[town.type];
             const isCurrent = this.game.currentTown?.id === town.id;
             const nodeR = isCurrent ? 14 : 10;
@@ -455,8 +457,8 @@ class UI {
                 (tp.route.to === tp.targetId ? tp.route.from : tp.route.to) : tp.route.from];
             const to = map.towns[tp.targetId];
             const progress = tp.currentSegment / tp.totalSegments;
-            const px = (from.x + (to.x - from.x) * progress) + baseOffX;
-            const py = (from.y + (to.y - from.y) * progress) + baseOffY;
+            const px = (from.x + (to.x - from.x) * progress) * scaleX + baseOffX;
+            const py = (from.y + (to.y - from.y) * progress) * scaleY + baseOffY;
             ctx.fillStyle = '#ff0';
             ctx.font = '20px sans-serif';
             ctx.textAlign = 'center';
