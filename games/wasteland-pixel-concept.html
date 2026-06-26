@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>废土快递 · 像素风概念</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d08;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    flex-direction: column;
+    gap: 24px;
+    padding: 20px;
+  }
+  canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 2px solid #3a3a2a;
+    box-shadow: 0 0 20px rgba(212,160,32,0.2);
+    max-width: 100vw;
+  }
+  .title {
+    color: #d4a020;
+    font-size: 22px;
+    letter-spacing: 8px;
+    text-shadow: 0 0 12px rgba(212,160,32,0.6);
+    animation: flicker 3s ease-in-out infinite;
+  }
+  .subtitle {
+    color: #a89c70;
+    font-size: 11px;
+    letter-spacing: 3px;
+  }
+  @keyframes flicker {
+    0%,100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.7; }
+    94% { opacity: 1; }
+    97% { opacity: 0.8; }
+    98% { opacity: 1; }
+  }
+  .screens {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .screen-label {
+    color: #a89c70;
+    font-size: 10px;
+    text-align: center;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .info {
+    color: #a89c70;
+    font-size: 12px;
+    text-align: center;
+    max-width: 600px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="title">废 土 快 递</div>
+<div class="subtitle">WASTELAND EXPRESS · PIXEL ART CONCEPT</div>
+
+<div class="screens">
+  <div>
+    <div class="screen-label">城镇画面</div>
+    <canvas id="canvas1" width="320" height="240"></canvas>
+  </div>
+  <div>
+    <div class="screen-label">地图画面</div>
+    <canvas id="canvas2" width="320" height="240"></canvas>
+  </div>
+</div>
+<div class="screens">
+  <div>
+    <div class="screen-label">战斗/事件</div>
+    <canvas id="canvas3" width="320" height="240"></canvas>
+  </div>
+  <div>
+    <div class="screen-label">派系声望</div>
+    <canvas id="canvas4" width="320" height="240"></canvas>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 像素风渲染引擎（纯Canvas，模拟时间当铺风格）
+// ============================================================
+
+const C = {
+  BG: '#0d0d08',       // 背景黑褐
+  BG2: '#1a1a0e',      // 面板底
+  BG3: '#222216',      // 深面板
+  BORDER: '#3a3a2a',   // 边框
+  TEXT: '#d4c8a0',     // 主文字
+  TEXT_DIM: '#a89c70', // 暗文字
+  ACCENT: '#d4a020',   // 金黄强调
+  ACCENT2: '#f0c040',  // 高亮金
+  DANGER: '#cc3333',   // 危险红
+  SUCCESS: '#44aa44',  // 成功绿
+  RADIATION: '#44ff44',// 辐射绿
+  WHITE: '#f0e8c0',    // 近白
+
+  // 派系色
+  FACTION_SALVAGE: '#ffaa00',
+  FACTION_ASH: '#999999',
+  FACTION_RUST: '#cc2222',
+  FACTION_IRON: '#44aa44',
+  FACTION_PURE: '#88cc44',
+  FACTION_ZERO: '#44ff88',
+};
+
+// 像素字体数据（简化版数字+字母，用点阵模拟）
+const FONT = {
+  '0':[[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]],
+  '1':[[0,1,0],[1,1,0],[0,1,0],[0,1,0],[1,1,1]],
+  '2':[[1,1,1],[0,0,1],[1,1,1],[1,0,0],[1,1,1]],
+  '3':[[1,1,1],[0,0,1],[1,1,1],[0,0,1],[1,1,1]],
+  '4':[[1,0,1],[1,0,1],[1,1,1],[0,0,1],[0,0,1]],
+  '5':[[1,1,1],[1,0,0],[1,1,1],[0,0,1],[1,1,1]],
+  '6':[[1,1,1],[1,0,0],[1,1,1],[1,0,1],[1,1,1]],
+  '7':[[1,1,1],[0,0,1],[0,0,1],[0,0,1],[0,0,1]],
+  '8':[[1,1,1],[1,0,1],[1,1,1],[1,0,1],[1,1,1]],
+  '9':[[1,1,1],[1,0,1],[1,1,1],[0,0,1],[1,1,1]],
+  'A':[[0,1,0],[1,0,1],[1,1,1],[1,0,1],[1,0,1]],
+  'B':[[1,1,0],[1,0,1],[1,1,0],[1,0,1],[1,1,0]],
+  'C':[[0,1,1],[1,0,0],[1,0,0],[1,0,0],[0,1,1]],
+  'D':[[1,1,0],[1,0,1],[1,0,1],[1,0,1],[1,1,0]],
+  'E':[[1,1,1],[1,0,0],[1,1,0],[1,0,0],[1,1,1]],
+  'F':[[1,1,1],[1,0,0],[1,1,0],[1,0,0],[1,0,0]],
+  'G':[[0,1,1],[1,0,0],[1,0,1],[1,0,1],[0,1,1]],
+  'H':[[1,0,1],[1,0,1],[1,1,1],[1,0,1],[1,0,1]],
+  'I':[[1,1,1],[0,1,0],[0,1,0],[0,1,0],[1,1,1]],
+  'J':[[0,0,1],[0,0,1],[0,0,1],[1,0,1],[0,1,0]],
+  'K':[[1,0,1],[1,0,1],[1,1,0],[1,0,1],[1,0,1]],
+  'L':[[1,0,0],[1,0,0],[1,0,0],[1,0,0],[1,1,1]],
+  'M':[[1,0,1],[1,1,1],[1,0,1],[1,0,1],[1,0,1]],
+  'N':[[1,0,1],[1,1,1],[1,1,1],[1,0,1],[1,0,1]],
+  'O':[[0,1,0],[1,0,1],[1,0,1],[1,0,1],[0,1,0]],
+  'P':[[1,1,0],[1,0,1],[1,1,0],[1,0,0],[1,0,0]],
+  'Q':[[0,1,0],[1,0,1],[1,0,1],[1,1,1],[0,1,1]],
+  'R':[[1,1,0],[1,0,1],[1,1,0],[1,0,1],[1,0,1]],
+  'S':[[0,1,1],[1,0,0],[0,1,0],[0,0,1],[1,1,0]],
+  'T':[[1,1,1],[0,1,0],[0,1,0],[0,1,0],[0,1,0]],
+  'U':[[1,0,1],[1,0,1],[1,0,1],[1,0,1],[0,1,0]],
+  'V':[[1,0,1],[1,0,1],[1,0,1],[0,1,0],[0,1,0]],
+  'W':[[1,0,1],[1,0,1],[1,0,1],[1,1,1],[1,0,1]],
+  'X':[[1,0,1],[1,0,1],[0,1,0],[1,0,1],[1,0,1]],
+  'Y':[[1,0,1],[1,0,1],[0,1,0],[0,1,0],[0,1,0]],
+  'Z':[[1,1,1],[0,0,1],[0,1,0],[1,0,0],[1,1,1]],
+  ' ':[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],
+  ':':[[0,0,0],[0,1,0],[0,0,0],[0,1,0],[0,0,0]],
+  '/':[[0,0,1],[0,0,1],[0,1,0],[1,0,0],[1,0,0]],
+  '+':[[0,0,0],[0,1,0],[1,1,1],[0,1,0],[0,0,0]],
+  '-':[[0,0,0],[0,0,0],[1,1,1],[0,0,0],[0,0,0]],
+  '.':[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,1,0]],
+  '!':[[0,1,0],[0,1,0],[0,1,0],[0,0,0],[0,1,0]],
+  '%':[[1,0,1],[0,0,1],[0,1,0],[1,0,0],[1,0,1]],
+  '#':[[1,0,1],[1,1,1],[0,1,0],[1,1,1],[1,0,1]],
+  '(':[[0,1,0],[1,0,0],[1,0,0],[1,0,0],[0,1,0]],
+  ')':[[0,1,0],[0,0,1],[0,0,1],[0,0,1],[0,1,0]],
+  '[':[[1,1,0],[1,0,0],[1,0,0],[1,0,0],[1,1,0]],
+  ']':[[0,1,1],[0,0,1],[0,0,1],[0,0,1],[0,1,1]],
+  '<':[[0,0,1],[0,1,0],[1,0,0],[0,1,0],[0,0,1]],
+  '>':[[1,0,0],[0,1,0],[0,0,1],[0,1,0],[1,0,0]],
+  '?':[[0,1,0],[1,0,1],[0,0,1],[0,1,0],[0,1,0]],
+  '~':[[0,0,0],[0,0,0],[1,0,1],[0,1,0],[1,0,0]],
+};
+
+// 像素绘制工具
+function pxText(ctx, text, x, y, scale = 1, color = C.TEXT) {
+  ctx.fillStyle = color;
+  let cx = x;
+  for (const ch of text.toUpperCase()) {
+    const glyph = FONT[ch] || FONT[' '];
+    for (let row = 0; row < glyph.length; row++) {
+      for (let col = 0; col < glyph[row].length; col++) {
+        if (glyph[row][col]) {
+          ctx.fillRect(
+            Math.floor(cx + col * scale),
+            Math.floor(y + row * scale),
+            Math.ceil(scale),
+            Math.ceil(scale)
+          );
+        }
+      }
+    }
+    cx += (glyph[0].length + 1) * scale;
+  }
+  return cx - x;
+}
+
+function pxTextWrap(ctx, text, x, y, maxWidth, scale, color) {
+  const lines = [];
+  let current = '';
+  let cw = 0;
+  for (const ch of text) {
+    const glyph = FONT[ch.toUpperCase()] || FONT[' '];
+    const w = (glyph[0].length + 1) * scale;
+    if (cw + w > maxWidth && current.length > 0) {
+      lines.push(current);
+      current = '';
+      cw = 0;
+    }
+    current += ch;
+    cw += w;
+  }
+  if (current) lines.push(current);
+  let cy = y;
+  for (const line of lines) {
+    pxText(ctx, line, x, cy, scale, color);
+    cy += (6 * scale);
+  }
+  return cy;
+}
+
+function drawRect(ctx, x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
+}
+
+function drawBorder(ctx, x, y, w, h, color = C.BORDER) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(Math.floor(x) + 0.5, Math.floor(y) + 0.5, Math.floor(w) - 1, Math.floor(h) - 1);
+}
+
+function drawPixelatedIcon(ctx, icon, x, y, size) {
+  // 简单emoji直接用fillText
+  ctx.save();
+  ctx.font = `${size}px serif`;
+  ctx.fillText(icon, x, y + size * 0.8);
+  ctx.restore();
+}
+
+// ============================================================
+// 画面1：城镇界面
+// ============================================================
+function renderTown(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const S = 1; // 像素缩放
+
+  // 背景
+  drawRect(ctx, 0, 0, W, H, C.BG);
+  // 网格纹理
+  ctx.fillStyle = '#111108';
+  for (let gx = 0; gx < W; gx += 8) {
+    for (let gy = 0; gy < H; gy += 8) {
+      if ((gx + gy) % 16 === 0) {
+        ctx.fillRect(gx, gy, 1, 1);
+      }
+    }
+  }
+
+  // 顶部状态栏
+  drawRect(ctx, 0, 0, W, 20, C.BG3);
+  drawBorder(ctx, 0, 0, W, 20, C.ACCENT);
+  pxText(ctx, ' 847 ', 2, 6, S, C.ACCENT2); // 瓶盖
+  pxText(ctx, ' IRON TOWN ', 60, 6, S, C.TEXT);
+  pxText(ctx, ' TURN 23 ', 180, 6, S, C.TEXT_DIM);
+  pxText(ctx, ' [X]MENU ', 248, 6, S, C.TEXT_DIM);
+
+  // 城镇名称
+  pxText(ctx, '>>> IRON TOWN <<<', 8, 28, 2, C.ACCENT);
+  pxText(ctx, '  [MILITARY BASE]  ', 8, 44, 1, C.TEXT_DIM);
+
+  // 左侧：行动菜单
+  const menuItems = [
+    { icon: '[]', label: 'VIEW ORDERS   [O]', color: C.ACCENT },
+    { icon: '[]', label: 'TRADE MARKET   [T]', color: C.TEXT },
+    { icon: '[]', label: 'MODIFY TRUCK   [V]', color: C.TEXT },
+    { icon: '[]', label: 'CREW MANAGER   [C]', color: C.TEXT },
+    { icon: '[]', label: 'TAVERN REST    [R]', color: C.TEXT },
+    { icon: '[]', label: 'REPAIR/REFUEL  [F]', color: C.TEXT_DIM },
+    { icon: '[]', label: 'FACTION QUESTS  [Q]', color: C.FACTION_SALVAGE },
+    { icon: '[]', label: 'COLLECTIBLES   [L]', color: C.FACTION_ZERO },
+  ];
+  let my = 60;
+  for (const item of menuItems) {
+    drawRect(ctx, 4, my, 3, 5, item.color);
+    pxText(ctx, item.label, 12, my + 1, S, item.color);
+    my += 9;
+  }
+
+  // 右侧：信息面板
+  const rx = 168;
+  // 车辆信息
+  drawRect(ctx, rx, 28, W - rx - 4, 70, C.BG2);
+  drawBorder(ctx, rx, 28, W - rx - 4, 70);
+  pxText(ctx, '=== TRUCK ===', rx + 4, 34, 1, C.ACCENT);
+
+  // 车辆像素图（简化货车）
+  drawRect(ctx, rx + 6, 44, 32, 16, '#5a5040'); // 车身
+  drawRect(ctx, rx + 38, 50, 14, 10, '#6a6050'); // 驾驶舱
+  drawRect(ctx, rx + 2, 58, 6, 6, '#333'); // 轮子1
+  drawRect(ctx, rx + 44, 58, 6, 6, '#333'); // 轮子2
+  drawRect(ctx, rx + 4, 46, 24, 2, '#8a7a60'); // 车顶
+  drawRect(ctx, rx + 40, 52, 10, 6, '#4a4a3a'); // 窗户
+  // 改装件指示
+  drawRect(ctx, rx + 56, 44, 4, 4, C.ACCENT);
+  drawRect(ctx, rx + 62, 44, 4, 4, C.SUCCESS);
+  drawRect(ctx, rx + 68, 44, 4, 4, C.TEXT_DIM);
+  drawRect(ctx, rx + 74, 44, 4, 4, C.FACTION_IRON);
+  drawRect(ctx, rx + 80, 44, 4, 4, C.DANGER);
+  pxText(ctx, 'ARMOR ENGI RADAR WEAP', rx + 56, 52, 1, C.TEXT_DIM);
+
+  // 属性条
+  const bars = [
+    { label: 'FUEL', val: 0.68, color: C.ACCENT },
+    { label: 'DURA', val: 0.72, color: C.TEXT },
+    { label: 'SPC ', val: 0.4, color: C.TEXT_DIM },
+  ];
+  bars.forEach((bar, i) => {
+    const bx = rx + 6, by = 68 + i * 8;
+    pxText(ctx, bar.label + ':', bx, by, 1, C.TEXT_DIM);
+    drawRect(ctx, bx + 32, by + 1, 50, 4, '#333');
+    drawRect(ctx, bx + 32, by + 1, Math.floor(50 * bar.val), 4, bar.color);
+  });
+
+  // 派系声望面板
+  drawRect(ctx, rx, 104, W - rx - 4, 80, C.BG2);
+  drawBorder(ctx, rx, 104, W - rx - 4, 80);
+  pxText(ctx, '=== FACTION ===', rx + 4, 110, 1, C.ACCENT);
+  const factions = [
+    { name: 'SALVAGE', color: C.FACTION_SALVAGE, rep: 1 },
+    { name: 'RUSTWHEEL', color: C.FACTION_RUST, rep: 0 },
+    { name: 'IRON SP', color: C.FACTION_IRON, rep: 2 },
+    { name: 'PURE EARTH', color: C.FACTION_PURE, rep: -1 },
+    { name: 'ASH KIN ', color: C.FACTION_ASH, rep: 0 },
+    { name: 'ZERO SK ', color: C.FACTION_ZERO, rep: 1 },
+  ];
+  factions.forEach((f, i) => {
+    const fy = 120 + i * 10;
+    pxText(ctx, f.name + ':', rx + 4, fy, 1, f.color);
+    const repBar = [0,0,0,0,0];
+    for (let r = 0; r < 5; r++) {
+      const filled = r < f.rep + 2;
+      repBar[r] = filled ? f.color : '#333';
+    }
+    repBar.forEach((color, ri) => {
+      drawRect(ctx, rx + 64 + ri * 6, fy + 1, 4, 4, color);
+    });
+    const repLabel = f.rep >= 0 ? '+' + f.rep : '' + f.rep;
+    pxText(ctx, ' ' + repLabel, rx + 98, fy, 1, f.rep > 0 ? C.SUCCESS : (f.rep < 0 ? C.DANGER : C.TEXT_DIM));
+  });
+
+  // 底部：派系折扣提示
+  drawRect(ctx, 0, H - 16, W, 16, C.BG3);
+  drawBorder(ctx, 0, H - 16, W, 16, C.ACCENT);
+  pxText(ctx, '  IRON SPINE REP+2: -20% SHOP PRICE  |  FRAGMENTS: 3/7  |  SCORE: 3250  ', 4, H - 11, 1, C.ACCENT);
+
+  // CRT扫描线效果
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  for (let sy = 0; sy < H; sy += 2) {
+    ctx.fillRect(0, sy, W, 1);
+  }
+}
+
+// ============================================================
+// 画面2：地图界面
+// ============================================================
+function renderMap(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  drawRect(ctx, 0, 0, W, H, C.BG);
+
+  // 标题栏
+  drawRect(ctx, 0, 0, W, 18, C.BG3);
+  drawBorder(ctx, 0, 0, W, 18, C.ACCENT);
+  pxText(ctx, '=== WASTELAND MAP ===', 4, 5, 1, C.ACCENT);
+  pxText(ctx, 'FUEL:68/100  DURA:72  [T]TOWN  [V]TRUCK', 160, 5, 1, C.TEXT_DIM);
+
+  // 地图区
+  const mx = 4, my = 22, mw = W - 8, mh = H - 80;
+
+  // 地形底色
+  ctx.fillStyle = '#1a1a0e';
+  ctx.fillRect(mx, my, mw, mh);
+  // 地形网格
+  ctx.strokeStyle = '#2a2a1e';
+  ctx.lineWidth = 1;
+  for (let gx = mx; gx < mx + mw; gx += 20) {
+    ctx.beginPath(); ctx.moveTo(gx, my); ctx.lineTo(gx, my + mh); ctx.stroke();
+  }
+  for (let gy = my; gy < my + mh; gy += 20) {
+    ctx.beginPath(); ctx.moveTo(mx, gy); ctx.lineTo(mx + mw, gy); ctx.stroke();
+  }
+
+  // 路线
+  const towns = [
+    { x: 60, y: 80, name: 'IRON TOWN', type: 'MILITARY', color: C.FACTION_IRON, visited: true, current: true },
+    { x: 130, y: 50, name: 'RUSTY VILLAGE', type: 'TRADING', color: C.FACTION_SALVAGE, visited: true },
+    { x: 200, y: 90, name: 'ASH VALLEY', type: 'RUINS', color: C.FACTION_ASH, visited: false },
+    { x: 100, y: 130, name: 'RUST CANYON', type: 'RAIDER', color: C.FACTION_RUST, visited: false },
+    { x: 170, y: 150, name: 'PURE OASIS', type: 'SETTLEMENT', color: C.FACTION_PURE, visited: false },
+    { x: 240, y: 60, name: 'ZERO RUINS', type: 'RUINS', color: C.FACTION_ZERO, visited: false },
+  ];
+
+  // 路线连线
+  const routes = [[0,1],[1,2],[0,3],[3,4],[2,5],[1,4]];
+  ctx.strokeStyle = '#3a3a2a';
+  ctx.lineWidth = 1;
+  for (const [a, b] of routes) {
+    ctx.beginPath();
+    ctx.moveTo(mx + towns[a].x, my + towns[a].y);
+    ctx.lineTo(mx + towns[b].x, my + towns[b].y);
+    ctx.stroke();
+  }
+
+  // 城镇节点
+  towns.forEach((t, i) => {
+    const tx = mx + t.x, ty = my + t.y;
+    const r = t.current ? 8 : 5;
+    // 城镇色圆
+    drawRect(ctx, tx - r, ty - r, r * 2, r * 2, t.color + (t.visited ? 'cc' : '44'));
+    drawBorder(ctx, tx - r, ty - r, r * 2, r * 2, t.color);
+    if (t.current) {
+      // 当前城镇闪烁
+      const pulse = Math.floor(Date.now() / 400) % 2;
+      if (pulse) drawRect(ctx, tx - r - 3, ty - r - 3, r * 2 + 6, r * 2 + 6, t.color + '33');
+    }
+    pxText(ctx, t.name, tx - t.name.length * 2, ty + r + 2, 1, t.visited ? C.TEXT : C.TEXT_DIM);
+    pxText(ctx, '[' + t.type + ']', tx - t.type.length * 2.5, ty + r + 9, 1, t.color + 'aa');
+
+    // 订单标记
+    if (i === 2 || i === 4) {
+      drawPixelatedIcon(ctx, '!', tx + r + 1, ty - r, 8);
+    }
+  });
+
+  // 选中路线预览
+  const selX = mx + towns[0].x, selY = my + towns[0].y;
+  const selX2 = mx + towns[1].x, selY2 = my + towns[1].y;
+  ctx.strokeStyle = C.ACCENT2;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(selX, selY);
+  ctx.lineTo(selX2, selY2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 路线信息栏
+  drawRect(ctx, 0, H - 58, W, 58, C.BG2);
+  drawBorder(ctx, 0, H - 58, W, 58, C.ACCENT);
+
+  // 选中路线详情
+  pxText(ctx, '>>> SELECTED ROUTE <<<', 6, H - 54, 1, C.ACCENT);
+  pxText(ctx, 'DEST: RUSTY VILLAGE [TRADING]', 6, H - 44, 1, C.TEXT);
+  pxText(ctx, 'DIST: 80KM   FUEL: 35   DANGER: 35%   RADIATION: NONE', 6, H - 36, 1, C.TEXT_DIM);
+  pxText(ctx, 'EXPECTED EVENTS: ~1.2  |  BANDITS: 12%  MERCHANT: 6%', 6, H - 28, 1, C.TEXT_DIM);
+  pxText(ctx, 'CONTROLLED BY: SALVAGE UNION   DISCOUNT: -10%', 6, H - 20, 1, C.FACTION_SALVAGE);
+
+  // 底部按钮提示
+  pxText(ctx, '[CLICK] SELECT   [ENTER] DEPART   [ESC] BACK', 6, H - 8, 1, C.TEXT_DIM);
+
+  // CRT效果
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  for (let sy = 0; sy < H; sy += 2) ctx.fillRect(0, sy, W, 1);
+}
+
+// ============================================================
+// 画面3：战斗/事件
+// ============================================================
+function renderCombat(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  drawRect(ctx, 0, 0, W, H, C.BG);
+
+  // 标题
+  drawRect(ctx, 0, 0, W, 18, C.BG3);
+  drawBorder(ctx, 0, 0, W, 18, C.DANGER);
+  pxText(ctx, '!! BANDIT AMBUSH !!', 4, 5, 1, C.DANGER);
+
+  // 中央：强盗像素图
+  const cx = W / 2, cy = 80;
+
+  // 强盗
+  // 头
+  drawRect(ctx, cx - 8, cy - 20, 16, 16, '#aa8866');
+  // 身体
+  drawRect(ctx, cx - 10, cy - 4, 20, 20, '#664422');
+  // 武器
+  drawRect(ctx, cx + 12, cy - 10, 20, 4, '#888');
+  drawRect(ctx, cx + 30, cy - 12, 4, 8, '#888');
+  // 腿
+  drawRect(ctx, cx - 8, cy + 16, 6, 10, '#443322');
+  drawRect(ctx, cx + 2, cy + 16, 6, 10, '#443322');
+  // 眼睛（凶恶）
+  drawRect(ctx, cx - 5, cy - 14, 3, 3, '#cc0000');
+  drawRect(ctx, cx + 2, cy - 14, 3, 3, '#cc0000');
+
+  pxText(ctx, '[BANDIT]', cx - 24, cy + 30, 1, C.DANGER);
+  pxText(ctx, 'POWER: 45', cx - 22, cy + 38, 1, C.TEXT_DIM);
+
+  // VS
+  pxText(ctx, 'VS', cx - 6, cy + 2, 2, C.ACCENT);
+
+  // 玩家货车
+  drawRect(ctx, cx - 100, cy - 16, 40, 20, '#5a5040');
+  drawRect(ctx, cx - 60, cy - 10, 16, 14, '#6a6050');
+  drawRect(ctx, cx - 96, cy + 2, 8, 8, '#333');
+  drawRect(ctx, cx - 54, cy + 2, 8, 8, '#333');
+  drawRect(ctx, cx - 58, cy - 14, 12, 6, '#4a4a3a');
+
+  pxText(ctx, '[PLAYER]', cx - 104, cy + 14, 1, C.SUCCESS);
+
+  // 战术选择面板
+  drawRect(ctx, 4, 140, W - 8, 90, C.BG2);
+  drawBorder(ctx, 4, 140, W - 8, 90, C.ACCENT);
+  pxText(ctx, '>>> SELECT TACTIC <<<', 8, 147, 1, C.ACCENT);
+
+  const tactics = [
+    { name: '[A] ALL-OUT ATTACK', desc: 'DMG+50% SELF+50% HIGH RISK', color: C.DANGER, sel: true },
+    { name: '[B] DEFEND         ', desc: 'DMG-30% SELF-60% STABLE WIN+15%', color: C.TEXT, sel: false },
+    { name: '[C] PRECISION STRIKE', desc: 'RANDOM SWING HIGH REWARD', color: C.TEXT, sel: false },
+  ];
+
+  tactics.forEach((t, i) => {
+    const ty = 156 + i * 22;
+    const tc = t.sel ? C.ACCENT2 : t.color;
+    drawRect(ctx, 8, ty, 3, 7, tc);
+    pxText(ctx, t.name, 14, ty + 1, 1, tc);
+    pxText(ctx, '  ' + t.desc, 14, ty + 9, 1, C.TEXT_DIM);
+    if (t.sel) {
+      pxText(ctx, '>>>', 200, ty + 1, 1, C.ACCENT2);
+    }
+  });
+
+  // 底部
+  drawRect(ctx, 0, H - 12, W, 12, C.BG3);
+  pxText(ctx, '[A/B/C] CHOOSE TACTIC   [ENTER] CONFIRM   [ESC] BRIBE 100G   [SPACE] FLEE', 4, H - 7, 1, C.TEXT_DIM);
+
+  // CRT
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  for (let sy = 0; sy < H; sy += 2) ctx.fillRect(0, sy, W, 1);
+}
+
+// ============================================================
+// 画面4：派系声望 + 零点碎片
+// ============================================================
+function renderFactions(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  drawRect(ctx, 0, 0, W, H, C.BG);
+
+  // 标题
+  drawRect(ctx, 0, 0, W, 18, C.BG3);
+  drawBorder(ctx, 0, 0, W, 18, C.ACCENT);
+  pxText(ctx, '=== FACTION STANDING ===', 4, 5, 1, C.ACCENT);
+  pxText(ctx, 'TURN: 23   FRAGMENTS: 3/7', 190, 5, 1, C.TEXT_DIM);
+
+  // 派系详情
+  const factions = [
+    {
+      id: 'SALVAGE', color: C.FACTION_SALVAGE, rep: 1,
+      level: 'FRIENDLY', rank: 'TRUSTED',
+      desc: 'Collect old tech. Anti-Ash purge.',
+      likes: 'Tech, Salvage, Ruins', dislikes: 'Ash Cult', border: C.ACCENT
+    },
+    {
+      id: 'ASH KIN', color: C.FACTION_ASH, rep: -1,
+      level: 'UNTRUSTED', rank: 'AVOID',
+      desc: 'Purify wasteland. Kill mutants.',
+      likes: 'Order, Medicine, Purity', dislikes: 'Mutants, Salvagers', border: C.TEXT_DIM
+    },
+    {
+      id: 'RUSTWHEEL', color: C.FACTION_RUST, rep: 0,
+      level: 'NEUTRAL', rank: 'NORMAL',
+      desc: 'We sell everything. No questions.',
+      likes: 'Caps, Intel, Smuggling', dislikes: 'War', border: C.TEXT_DIM
+    },
+    {
+      id: 'IRON SPINE', color: C.FACTION_IRON, rep: 2,
+      level: 'TRUSTED', rank: 'VIP',
+      desc: 'Order. Discipline. Legacy.',
+      likes: 'Order, Obedience, Weapons', dislikes: 'Anarchy', border: C.SUCCESS
+    },
+    {
+      id: 'PURE EARTH', color: C.FACTION_PURE, rep: -1,
+      level: 'UNTRUSTED', rank: 'WATCH',
+      desc: 'Protect the food. Protect life.',
+      likes: 'Food, Water, Peace', dislikes: 'Supply chain threats', border: C.TEXT_DIM
+    },
+    {
+      id: 'ZERO SK', color: C.FACTION_ZERO, rep: 1,
+      level: 'FRIENDLY', rank: 'PARTNER',
+      desc: 'The truth is out there.',
+      likes: 'Truth, Fragments, Records', dislikes: 'Cover-ups', border: C.FACTION_ZERO
+    },
+  ];
+
+  factions.forEach((f, i) => {
+    const fy = 24 + i * 34;
+    const fx = 4;
+    const fw = W - 8;
+
+    drawRect(ctx, fx, fy, fw, 32, C.BG2);
+    drawBorder(ctx, fx, fy, fw, 32, f.border);
+
+    // 图标色块
+    drawRect(ctx, fx + 2, fy + 2, 28, 28, f.color + '33');
+    drawRect(ctx, fx + 6, fy + 6, 20, 20, f.color);
+
+    // 名称和等级
+    pxText(ctx, f.id, fx + 36, fy + 6, 1.5, f.color);
+    pxText(ctx, '[' + f.level + ']  RANK:' + f.rank, fx + 36, fy + 16, 1, C.TEXT_DIM);
+
+    // 声望条
+    const barStart = fx + 130;
+    pxText(ctx, 'REP:', barStart, fy + 10, 1, C.TEXT_DIM);
+    for (let r = 0; r < 5; r++) {
+      const filled = r < f.rep + 2;
+      const rc = filled ? f.color : '#333';
+      drawRect(ctx, barStart + 24 + r * 10, fy + 4, 8, 8, rc);
+      const labels = ['HOS', 'DIS', 'NEU', 'FRN', 'TRU'];
+      pxText(ctx, labels[r] || '', barStart + 24 + r * 10 + 1, fy + 14, 1, C.TEXT_DIM);
+    }
+
+    // 折扣
+    const discount = f.rep >= 1 ? '-' + (10 + f.rep * 10) + '%' : (f.rep < 0 ? '+' + (-f.rep * 15) + '%' : '0%');
+    pxText(ctx, discount + 'SHOP', barStart + 80, fy + 10, 1, f.rep >= 1 ? C.SUCCESS : (f.rep < 0 ? C.DANGER : C.TEXT_DIM));
+
+    // 简介
+    pxText(ctx, f.desc, fx + 36, fy + 24, 1, C.TEXT_DIM);
+
+    // 任务进度
+    pxText(ctx, 'QUESTS: 2/3 DONE', fx + 220, fy + 10, 1, C.ACCENT);
+  });
+
+  // 零点碎片进度条
+  drawRect(ctx, 4, H - 30, W - 8, 24, C.BG2);
+  drawBorder(ctx, 4, H - 30, W - 8, 24, C.FACTION_ZERO);
+  pxText(ctx, '=== ZERO FRAGMENTS ===', 8, H - 25, 1, C.FACTION_ZERO);
+  drawRect(ctx, 120, H - 26, 150, 14, '#333');
+  drawRect(ctx, 120, H - 26, Math.floor(150 * 3 / 7), 14, C.FACTION_ZERO);
+  pxText(ctx, '3/7', 128, H - 19, 1, C.BG);
+
+  pxText(ctx, '>>> ENTER ZERO FACILITY [ALL 7] <<<', 280, H - 19, 1, C.FACTION_ZERO);
+
+  // CRT
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  for (let sy = 0; sy < H; sy += 2) ctx.fillRect(0, sy, W, 1);
+}
+
+// ============================================================
+// 动画循环
+// ============================================================
+let animFrame = 0;
+function animate() {
+  renderTown(document.getElementById('canvas1'));
+  renderMap(document.getElementById('canvas2'));
+  renderCombat(document.getElementById('canvas3'));
+  renderFactions(document.getElementById('canvas4'));
+  animFrame++;
+  requestAnimationFrame(animate);
+}
+
+window.addEventListener('load', animate);
+</script>
+</body>
+</html>
