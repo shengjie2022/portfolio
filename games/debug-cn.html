@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>Debug Canvas Text</title></head>
+<body style="background:#000;padding:20px">
+<h2 style="color:#d4a020">调试：Canvas 中文字符渲染</h2>
+<canvas id="test1" width="320" height="240" style="border:1px solid #555"></canvas>
+<textarea id="log" style="width:100%;height:80px;color:#0f0;font-size:12px;background:#111" readonly></textarea>
+<script>
+var logger = document.getElementById('log');
+function log(msg) {
+  logger.value += msg + '\n';
+  console.log(msg);
+}
+var ctx = document.getElementById('test1').getContext('2d');
+var W = 320, H = 240;
+
+log('Test 1: Basic fillText');
+ctx.fillStyle = '#111';
+ctx.fillRect(0, 0, W, H);
+
+// Title bar
+ctx.fillStyle = '#1a1a0e';
+ctx.fillRect(0, 0, W, 20);
+ctx.fillStyle = '#d4a020';
+ctx.font = '13px Microsoft YaHei, sans-serif';
+ctx.textBaseline = 'alphabetic';
+ctx.fillText('★ 派系声望 ★', 4, 14);
+log('Drew title bar at y=14');
+
+// Faction panels
+var factions = [
+  { name: '铁脊髓', color: '#44aa44', rep: 2, level: '信任', rank: '超级会员',
+    desc: '秩序、纪律、遗产', discount: -20, missions: 3 },
+  { name: '打捷联盟', color: '#ffaa00', rep: 1, level: '友好', rank: '信任',
+    desc: '收集旧技术。反灰烬净化', discount: -10, missions: 2 },
+  { name: '雷烽探索', color: '#44ff88', rep: 1, level: '友好', rank: '合作伙伴',
+    desc: '真相就在那里', discount: -10, missions: 1 },
+];
+factions.forEach(function(f, i) {
+  var fy = 24 + i * 35;
+  ctx.fillStyle = '#111108';
+  ctx.fillRect(4, fy, W - 8, 33);
+  ctx.strokeStyle = f.color;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(4 + 0.5, fy + 0.5, W - 9, 33);
+
+  ctx.fillStyle = f.color;
+  ctx.font = '13px Microsoft YaHei, sans-serif';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(f.name, 8, fy + 14);
+  ctx.fillStyle = '#7a7050';
+  ctx.font = '11px Microsoft YaHei, sans-serif';
+  ctx.fillText('[' + f.level + '] 等级: ' + f.rank, 8, fy + 26);
+  ctx.fillText(f.desc, 120, fy + 14);
+  log('Drew faction ' + f.name + ' at fy=' + fy);
+});
+
+// Bottom bar
+ctx.fillStyle = '#1a1a0e';
+ctx.fillRect(0, H - 20, W, 20);
+ctx.fillStyle = '#7a7050';
+ctx.font = '11px Microsoft YaHei, sans-serif';
+ctx.textBaseline = 'alphabetic';
+ctx.fillText('[点击派系] 查看任务 [任] 派系任务 [商] 商业市 [返] 返回', 4, H - 7);
+log('Drew bottom bar');
+
+// Vignette (this is what was OVER the text)
+var g = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.8);
+g.addColorStop(0, 'rgba(0,0,0,0)');
+g.addColorStop(1, 'rgba(0,0,0,0.45)');
+ctx.fillStyle = g;
+ctx.fillRect(0, 0, W, H);
+log('Drew vignette overlay');
+
+// CRT scanlines
+ctx.fillStyle = 'rgba(0,0,0,0.07)';
+for (var sy = 0; sy < H; sy += 2) ctx.fillRect(0, sy, W, 1);
+log('Drew CRT lines - ALL DONE');
+
+log('');
+log('If you see factions above, font is working.');
+log('If factions missing, check y positions above.');
+</script>
+</body>
+</html>
