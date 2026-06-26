@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>Canvas中文测试</title></head>
+<body style="background:#000">
+<canvas id="c" width="400" height="300" style="border:2px solid #fff;image-rendering:pixelated"></canvas>
+<script>
+var ctx = document.getElementById('c').getContext('2d');
+ctx.fillStyle = '#111';
+ctx.fillRect(0,0,400,300);
+ctx.fillStyle = '#d4a020';
+ctx.font = '14px sans-serif';
+ctx.textBaseline = 'top';
+ctx.fillText('English: Round 24 Crew 4', 10, 20);
+ctx.fillStyle = '#ff6644';
+ctx.font = '16px sans-serif';
+ctx.fillText('这是中文测试 回合24 乘员4', 10, 50);
+ctx.fillStyle = '#44ff88';
+ctx.font = 'bold 18px sans-serif';
+ctx.fillText('碎片 3/7  积分 4280', 10, 80);
+ctx.fillStyle = '#cc4422';
+ctx.fillRect(10, 110, 380, 60);
+ctx.fillStyle = '#fff';
+ctx.font = '13px sans-serif';
+ctx.fillText('对话框: 强盗埋伏! 空格=贿赂 F=逃跑 回车=一战', 15, 120);
+ctx.fillStyle = '#d4a020';
+ctx.font = '20px sans-serif';
+ctx.fillText('派系声望系统', 10, 190);
+ctx.fillStyle = '#44aa44';
+ctx.font = '14px sans-serif';
+ctx.fillText('铁脊脊髓 [信任]  声望条 敌无中友信', 10, 215);
+ctx.fillStyle = '#44ff88';
+ctx.font = '20px sans-serif';
+ctx.fillText('零点碎片收集', 10, 240);
+ctx.fillStyle = '#f0e8c0';
+ctx.font = '14px sans-serif';
+ctx.fillText('#01 觉醒了 已获  #02 第一纹 已获  #03 信号 已获', 10, 265);
+console.log('Canvas test complete');
+</script>
+</body>
+</html>
