@@ -142,6 +142,7 @@ class Game {
         this.crewBonds = {}; // { crewId: { withId: bondLevel, flags: [], storyNode: 0 } }
         this.storyFlags = {}; // 全局剧情标记
         this.unlockedFactionMods = []; // 已解锁的派系改装
+        this.visitedFactions = new Set(); // 已首次接触的派系（用于派系首次接触事件）
         this.endingTriggered = null; // 触发的结局ID
     }
 
@@ -1858,6 +1859,107 @@ class Game {
             if (event.effect?.routeDanger) {
                 // 路线危险度已经被影响，这里主要是提示
             }
+        }
+    }
+
+    // ========== 游戏阶段系统（叙事节奏） ==========
+    getGameStage() {
+        const turn = this.turn;
+        for (const stage of GAME_STAGES) {
+            if (turn >= stage.minTurn && turn <= stage.maxTurn) {
+                return stage;
+            }
+        }
+        return GAME_STAGES[GAME_STAGES.length - 1]; // 默认返回最后阶段
+    }
+
+    // 获取阶段提示信息
+    getStageHint() {
+        const stage = this.getGameStage();
+        const hints = {
+            newcomer: [
+                '熟悉各个城镇的特点，了解货物价格差异',
+                '尝试接一些简单订单，了解游戏流程',
+                '注意维护车辆耐久和燃油储备'
+            ],
+            faction_contact: [
+                '各派系开始注意到你的存在',
+                '可以尝试接受派系任务，建立声望',
+                '不同派系的城镇有不同价格优势'
+            ],
+            deep_choice: [
+                '派系任务链正在推进，你的选择会影响结局',
+                '注意各派系之间的关系，谨慎站队',
+                '收集到的旧世界记录可能隐藏重要线索'
+            ],
+            truth_emerge: [
+                '零点碎片的线索开始浮现',
+                '追寻真相的旅途即将开始',
+                '派系声望可能决定你的最终命运'
+            ],
+            finale: [
+                '终局临近，选择你想要的结局',
+                '收集所有零点碎片可触发真结局',
+                '派系关系已定型，结局即将揭晓'
+            ]
+        };
+        const stageHints = hints[stage.id] || hints.newcomer;
+        return stageHints[Math.floor(Math.random() * stageHints.length)];
+    }
+
+    // ========== 派系首次接触系统 ==========
+    // 获取城镇所属派系
+    _getTownFaction(town) {
+        const factionKeys = Object.keys(FACTIONS);
+        for (const fid of factionKeys) {
+            const faction = FACTIONS[fid];
+            if (town.type === 'trading' && (fid === 'salvagers' || fid === 'rustwheel' || fid === 'pureearth')) {
+                return fid;
+            }
+            if (town.type === 'military' && (fid === 'ironspine' || fid === 'ashkins')) {
+                return fid;
+            }
+            if (town.type === 'settlement' && (fid === 'pureearth' || fid === 'rustwheel')) {
+                return fid;
+            }
+            if (town.type === 'ruins' && (fid === 'zerseekers' || fid === 'salvagers')) {
+                return fid;
+            }
+        }
+        return null;
+    }
+
+    // 检查是否需要派系首次接触事件
+    checkFactionFirstContact(town) {
+        const factionId = this._getTownFaction(town);
+        if (!factionId) return null;
+        if (this.visitedFactions.has(factionId)) return null;
+        return FACTION_FIRST_CONTACT[factionId];
+    }
+
+    // 处理派系首次接触选择
+    handleFactionFirstContactChoice(factionId, choiceIndex) {
+        const contact = FACTION_FIRST_CONTACT[factionId];
+        if (!contact || !contact.choices[choiceIndex]) return;
+        
+        const choice = contact.choices[choiceIndex];
+        this.visitedFactions.add(factionId);
+        
+        if (choice.effect === 'neutral') {
+            this.addLog(`🤝 你与${FACTIONS[factionId].name}进行了友好但谨慎的交流。`);
+        } else if (choice.effect === factionId) {
+            if (choice.bonus) {
+                this.addLog(`✨ ${choice.bonus}`);
+            }
+            // 获得少量声望作为首次接触奖励
+            this.modifyFactionRep(factionId, 1);
+            this.addLog(`${FACTIONS[factionId].icon} 你与${FACTIONS[factionId].name}建立了初步联系（声望+1）`);
+        } else {
+            if (choice.penalty) {
+                this.addLog(`⚠️ ${choice.penalty}`);
+            }
+            this.modifyFactionRep(factionId, -1);
+            this.addLog(`${FACTIONS[factionId].icon} 你与${FACTIONS[factionId].name}的关系有些紧张（声望-1）`);
         }
     }
 

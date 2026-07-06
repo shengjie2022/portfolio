@@ -1363,6 +1363,102 @@ const COLLECTIBLES = {
     ]
 };
 
+// ========== 游戏阶段系统（叙事节奏） ==========
+// 策划案中的回合阶段：
+// 回合 1-5：   【废土新人】→ 熟悉系统，建立基本策略
+// 回合 6-15：  【派系接触】→ 各派系主动接触，提供任务
+// 回合 16-25： 【深入抉择】→ 派系任务链推进，需要做出有代价的选择
+// 回合 26-35： 【真相浮现】→ 零点碎片开始出现，线索汇聚
+// 回合 36+：    【终局逼近】→ 所有派系线汇聚，结局条件逐渐明确
+const GAME_STAGES = [
+    { minTurn: 0, maxTurn: 5, id: 'newcomer', name: '废土新人', color: '#888888', 
+      desc: '熟悉废土生存法则，建立基本策略', icon: '🌱' },
+    { minTurn: 6, maxTurn: 15, id: 'faction_contact', name: '派系接触', color: '#d4a020', 
+      desc: '各派系主动接触，提供任务机会', icon: '🤝' },
+    { minTurn: 16, maxTurn: 25, id: 'deep_choice', name: '深入抉择', color: '#cc6622', 
+      desc: '派系任务链推进，需要做出有代价的选择', icon: '⚖️' },
+    { minTurn: 26, maxTurn: 35, id: 'truth_emerge', name: '真相浮现', color: '#44ff88', 
+      desc: '零点碎片开始出现，线索汇聚', icon: '🔮' },
+    { minTurn: 36, maxTurn: 999, id: 'finale', name: '终局逼近', color: '#ff4444', 
+      desc: '所有派系线汇聚，结局条件逐渐明确', icon: '⚡' }
+];
+
+// 派系首次接触事件文本
+const FACTION_FIRST_CONTACT = {
+    salvagers: {
+        title: '拾荒者的注视',
+        text: '拾荒者们用警惕的目光打量着你的货车。「又一个外乡人...希望你不是来找麻烦的。」他们的机械义肢在阳光下闪烁，「想在这儿做生意？先证明你不是在浪费我们的时间。」',
+        choices: [
+            { text: '我只是路过的商人', effect: 'neutral' },
+            { text: '我对旧世界技术很感兴趣', effect: 'salvagers', bonus: '对拾荒者的好奇心引起了他们的共鸣' },
+            { text: '灰烬之子让我来找你们', effect: 'salvagers', penalty: '明显撒谎，他们的态度变冷了' }
+        ]
+    },
+    ashkins: {
+        title: '灰烬之子的审视',
+        text: '灰烬之子们围了过来，他们的白袍在风中飘动。「陌生人，你没有被污染的迹象...这是神的恩典。」祭司般的人物走上前，「废土上有很多迷途的羔羊，愿你能在灰烬中找到光明。」',
+        choices: [
+            { text: '感谢你们的欢迎', effect: 'neutral' },
+            { text: '我听说过你们的医疗技术', effect: 'ashkins', bonus: '灰烬之子对你的尊重医学表示赞赏' },
+            { text: '变异者真的存在吗？', effect: 'ashkins', penalty: '灰烬之子对这个问题的态度变得冷淡' }
+        ]
+    },
+    rustwheel: {
+        title: '锈轮的眼线',
+        text: '一个不起眼的身影拦住了你。「欢迎来到锈轮的势力范围。」他的眼神锐利，「我们什么都知道——包括你是谁、从哪来、要去哪。想在废土做生意？找我们就对了。价格公道，信息准确。」',
+        choices: [
+            { text: '我只是个普通的货车司机', effect: 'neutral' },
+            { text: '我对情报生意很感兴趣', effect: 'rustwheel', bonus: '锈轮商会对潜在的合作伙伴表示欢迎' },
+            { text: '你们知道得太多了', effect: 'rustwheel', penalty: '锈轮商会认为你太警惕了' }
+        ]
+    },
+    ironspine: {
+        title: '钢铁脊梁的检查站',
+        text: '全副武装的士兵拦住了你的去路。「停车，接受检查。」他们的指挥官走上前，「在钢铁脊梁的领土上，所有车辆和人员都必须登记。这是维持秩序的必要措施。」',
+        choices: [
+            { text: '当然，我愿意配合', effect: 'neutral' },
+            { text: '我是来寻求保护的', effect: 'ironspine', bonus: '钢铁脊梁对寻求秩序的人表示认可' },
+            { text: '我不需要被盘问', effect: 'ironspine', penalty: '钢铁脊梁对你的不合作态度表示不满' }
+        ]
+    },
+    pureearth: {
+        title: '净土的和平',
+        text: '田野和绿荫出现在眼前，这是废土上难得一见的景象。「旅行者，欢迎来到净土。」一个朴实的农夫放下手中的工具，「在这里，我们只关心庄稼和收成。战争和派系？那不是我们的事。」',
+        choices: [
+            { text: '这里真是废土中的一片净土', effect: 'neutral' },
+            { text: '我可以帮忙护送货物吗？', effect: 'pureearth', bonus: '净土农联对愿意帮助运输的人表示感激' },
+            { text: '你们不关心外面的世界吗？', effect: 'pureearth', penalty: '净土农联认为你太悲观了' }
+        ]
+    },
+    zerseekers: {
+        title: '零点追寻者',
+        text: '一个披着斗篷的身影在阴影中等待着。「你来了。」她的声音低沉，「追寻者们一直在等待...等待那个能找到真相的人。大寂静的秘密，零点的入口——你想知道吗？」',
+        choices: [
+            { text: '我只是路过的', effect: 'neutral' },
+            { text: '大寂静的真相...我很好奇', effect: 'zerseekers', bonus: '零点追寻者对你产生了好感' },
+            { text: '真相有时最好被埋葬', effect: 'zerseekers', penalty: '追寻者对你的态度表示失望' }
+        ]
+    }
+};
+
+// 大寂静背景信息（可在游戏说明中展示）
+const WASTELAND_LORE = {
+    title: '大寂静',
+    subtitle: '第87年 · 旧世界终结后的第87年',
+    events: [
+        { year: '2077年11月14日', event: '大寂静（The Silence）——AI自动防御系统故障，引发全球核交换。72小时内，9847枚核弹被引爆。' },
+        { year: '2077–2087年', event: '灰季——核冬天降临，气温骤降，农作物绝收。全球人口从82亿降至约2亿。' },
+        { year: '2087~2117年', event: '重建期——幸存者聚居地形成，派系萌芽。「旧世界货币」因其不可伪造性成为通用货币——瓶盖。' },
+        { year: '第87年（现在）', event: '新的秩序正在形成，零点协议浮出水面...' }
+    ],
+    geography: {
+        north: '灰脊山脉（辐射云笼罩）',
+        south: '裂痕（地质裂缝，未知）',
+        east: '锈海（百万废弃车辆堆积）',
+        west: '零海岸（辐射海滨）'
+    }
+};
+
 // ========== 8种结局定义 ==========
 const ENDINGS = {
     // 商业传奇：完成10个订单，净资产超过5000瓶盖

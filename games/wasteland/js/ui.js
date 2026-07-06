@@ -331,6 +331,11 @@ class UI {
         if (!content) return;
         const typeData = TOWN_TYPES[town.type];
         const completable = this.game.activeOrders.filter(o => o.toTown === town.id);
+        
+        // 获取游戏阶段信息
+        const stage = this.game.getGameStage();
+        const stageHint = this.game.getStageHint();
+        
         content.innerHTML = `
             <div class="town-header">
                 <h2 style="color: ${typeData.color}">${town.name}</h2>
@@ -338,6 +343,18 @@ class UI {
             </div>
             ${completable.length > 0 ? `<div class="notice success">✅ 有${completable.length}个订单可以在此完成！已自动交付。</div>` : ''}
             ${this.game.zeroFragments.length >= 7 ? `<div class="notice" style="background:#44ff8822;color:#44ff88;border:1px solid #44ff88">⚡ 零点设施入口已显现！前往「🔮碎片」查看</div>` : ''}
+            
+            <!-- 游戏阶段提示 -->
+            <div class="game-stage-banner" style="background:${stage.color}22;border:1px solid ${stage.color}55;padding:8px 12px;border-radius:6px;margin-bottom:12px">
+                <span style="color:${stage.color};font-weight:bold">${stage.icon} ${stage.name}</span>
+                <span class="dim" style="margin-left:8px">${stage.desc}</span>
+            </div>
+            
+            <!-- 阶段提示 -->
+            <div class="stage-hint" style="background:#1a1a0e;padding:6px 10px;border-radius:4px;margin-bottom:12px;font-size:12px">
+                💡 ${stageHint}
+            </div>
+            
             <div class="town-actions">
                 <button class="btn btn-primary" onclick="ui.showPanel('orders')">📋 查看订单 <span class="badge">${this.game.availableOrders.length}</span></button>
                 <button class="btn btn-primary" onclick="ui.showPanel('trade')">🏪 交易市场</button>
@@ -361,6 +378,57 @@ class UI {
                 ` : ''}
             </div>
         `;
+        
+        // 检查派系首次接触
+        const factionContact = this.game.checkFactionFirstContact(town);
+        if (factionContact) {
+            this.showFactionFirstContactModal(town, factionContact);
+        }
+    }
+
+    // 派系首次接触模态框
+    showFactionFirstContactModal(town, contact) {
+        const factionId = this.game._getTownFaction(town);
+        if (!factionId) return;
+        
+        const faction = FACTIONS[factionId];
+        const content = document.getElementById('town-content');
+        if (!content) return;
+        
+        // 在城镇内容前插入模态框
+        const modalHtml = `
+            <div class="faction-contact-modal" style="background:#222216;border:2px solid ${faction.color};border-radius:8px;padding:16px;margin-bottom:16px">
+                <div class="contact-header" style="color:${faction.color};font-size:16px;font-weight:bold;margin-bottom:8px">
+                    ${faction.icon} ${contact.title}
+                </div>
+                <div class="contact-text" style="color:var(--text);line-height:1.6;margin-bottom:12px">
+                    ${contact.text}
+                </div>
+                <div class="contact-choices" style="display:flex;flex-direction:column;gap:8px">
+                    ${contact.choices.map((choice, i) => `
+                        <button class="btn ${i === 1 ? 'btn-primary' : 'btn-secondary'}" 
+                                onclick="ui.handleFactionContactChoice('${factionId}', ${i})">
+                            ${choice.text}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        // 在游戏阶段提示后插入
+        const stageHint = content.querySelector('.stage-hint');
+        if (stageHint) {
+            stageHint.insertAdjacentHTML('afterend', modalHtml);
+        } else {
+            content.insertAdjacentHTML('afterbegin', modalHtml);
+        }
+    }
+
+    // 处理派系首次接触选择
+    handleFactionContactChoice(factionId, choiceIndex) {
+        this.game.handleFactionFirstContactChoice(factionId, choiceIndex);
+        this.refresh();
+        this.showToast('派系关系已更新', 'info');
     }
 
     handleSave() {
