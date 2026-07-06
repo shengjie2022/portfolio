@@ -454,8 +454,12 @@ class UI {
             this.showFactionFirstContactModal(town, factionContact);
         }
         
-        // 检查新手教程触发
-        this.checkTownTutorial();
+        // 教程应该在派系接触之后检查，但如果派系接触显示了，就先不让教程显示
+        // 这样玩家可以先了解派系，再开始教程
+        if (!factionContact) {
+            // 检查新手教程触发（只在没有派系接触事件时触发）
+            this.checkTownTutorial();
+        }
     }
 
     // 派系首次接触模态框

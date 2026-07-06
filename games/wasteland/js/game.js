@@ -351,6 +351,10 @@ class Game {
         this.addLog(`当前位置：${this.currentTown.name}（${TOWN_TYPES[this.currentTown.type].name}）`);
         // 随机触发一个派系战争事件
         this._tryTriggerFactionWar();
+        
+        // 新游戏开始时自动启动教程
+        console.log('[startGame] 启动新游戏，自动开始教程');
+        this.startTutorial('town_basics');
     }
 
     // ========== 地图生成 ==========
