@@ -619,6 +619,287 @@ class UI {
         this.renderEvent();
     }
 
+    // ========== 像素车辆绘制 ==========
+    renderVehicleCanvas() {
+        const canvas = document.getElementById('vehicle-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        // 设置画布大小
+        canvas.width = 320;
+        canvas.height = 180;
+        
+        const v = this.game.vehicle;
+        const stats = this.game.getVehicleStats();
+        
+        // 清空画布（暗色背景）
+        ctx.fillStyle = '#0a0a06';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 绘制地面网格
+        ctx.strokeStyle = '#1a1a0e';
+        ctx.lineWidth = 1;
+        for (let y = 140; y < 180; y += 8) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(320, y);
+            ctx.stroke();
+        }
+        for (let x = 0; x < 320; x += 16) {
+            ctx.beginPath();
+            ctx.moveTo(x, 140);
+            ctx.lineTo(x, 180);
+            ctx.stroke();
+        }
+        
+        // 基础车辆颜色
+        const baseColor = '#8B7355'; // 基础棕色
+        const darkColor = '#5D4E37'; // 深棕色
+        const accentColor = '#D4A020'; // 金色
+        const wheelColor = '#2a2a2a'; // 轮胎黑
+        const windowColor = '#4a6a8a'; // 窗户蓝
+        
+        // 根据改装调整颜色
+        const hasArmor = v.mods.armor;
+        const hasEngine = v.mods.engine;
+        const hasCargo = v.mods.cargo;
+        const hasWeapon = v.mods.weapon;
+        const hasRadar = v.mods.radar;
+        
+        // 计算改装等级影响
+        let armorLevel = 0, engineLevel = 0, cargoLevel = 0;
+        if (hasArmor) {
+            const mod = MODIFICATIONS[hasArmor];
+            armorLevel = mod ? (mod.rarity || 1) : 1;
+        }
+        if (hasEngine) {
+            const mod = MODIFICATIONS[hasEngine];
+            engineLevel = mod ? (mod.rarity || 1) : 1;
+        }
+        if (hasCargo) {
+            const mod = MODIFICATIONS[hasCargo];
+            cargoLevel = mod ? (mod.rarity || 1) : 1;
+        }
+        
+        // 绘制车辆主体
+        const truckX = 60;
+        const truckY = 60;
+        
+        // 车厢部分（后部）
+        ctx.fillStyle = hasArmor ? '#7a8a9a' : baseColor;
+        ctx.fillRect(truckX, truckY + 20, 100, 60);
+        
+        // 车厢细节
+        ctx.fillStyle = hasArmor ? '#5a6a7a' : darkColor;
+        ctx.fillRect(truckX + 5, truckY + 25, 90, 5); // 顶部条纹
+        ctx.fillRect(truckX + 5, truckY + 70, 90, 5); // 底部条纹
+        
+        // 货舱容量可视化（cargo level 1-3 = 小/中/大车厢）
+        if (hasCargo) {
+            ctx.fillStyle = '#4a5a3a';
+            const cargoHeight = 30 + cargoLevel * 8;
+            ctx.fillRect(truckX + 10, truckY + 55 - cargoHeight + 30, 80, cargoHeight - 5);
+            
+            // 货物标记
+            ctx.fillStyle = '#6a7a5a';
+            for (let i = 0; i < cargoLevel; i++) {
+                ctx.fillRect(truckX + 15 + i * 25, truckY + 60 - cargoHeight + 30, 20, cargoHeight - 15);
+            }
+        }
+        
+        // 驾驶室部分（前部）
+        ctx.fillStyle = hasArmor ? '#6a7a8a' : '#9a8565';
+        ctx.fillRect(truckX + 100, truckY + 15, 60, 65);
+        
+        // 挡风玻璃
+        ctx.fillStyle = windowColor;
+        ctx.fillRect(truckX + 110, truckY + 20, 40, 25);
+        
+        // 窗户细节
+        ctx.fillStyle = '#3a5a7a';
+        ctx.fillRect(truckX + 115, truckY + 25, 30, 15);
+        
+        // 引擎盖
+        ctx.fillStyle = hasArmor ? '#5a6a7a' : darkColor;
+        ctx.fillRect(truckX + 160, truckY + 35, 25, 30);
+        
+        // 引擎升级效果
+        if (hasEngine) {
+            ctx.fillStyle = accentColor;
+            ctx.fillRect(truckX + 163, truckY + 38, 19, 3);
+            ctx.fillRect(truckX + 163, truckY + 44, 19, 3);
+            // 排气管
+            ctx.fillStyle = '#555';
+            ctx.fillRect(truckX + 180, truckY + 50, 8, 6);
+            ctx.fillStyle = '#ff6644';
+            ctx.fillRect(truckX + 186, truckY + 51, 4, 4);
+        }
+        
+        // 装甲效果
+        if (hasArmor) {
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 3;
+            // 侧面装甲
+            ctx.strokeRect(truckX + 2, truckY + 18, 96, 64);
+            // 装甲铆钉
+            ctx.fillStyle = '#666';
+            const rivetPositions = [[10, 25], [90, 25], [10, 75], [90, 75]];
+            rivetPositions.forEach(([rx, ry]) => {
+                ctx.beginPath();
+                ctx.arc(truckX + rx, truckY + ry, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // 额外装甲板
+            ctx.fillStyle = '#6a7a8a';
+            ctx.fillRect(truckX - 5, truckY + 35, 8, 30);
+            ctx.fillRect(truckX + 97, truckY + 35, 8, 30);
+        }
+        
+        // 武器系统
+        if (hasWeapon) {
+            // 枪架
+            ctx.fillStyle = '#555';
+            ctx.fillRect(truckX + 40, truckY + 5, 8, 20);
+            ctx.fillRect(truckX + 55, truckY + 8, 6, 17);
+            
+            // 枪管
+            ctx.fillStyle = '#444';
+            ctx.fillRect(truckX + 38, truckY, 12, 8);
+            ctx.fillRect(truckX + 53, truckY + 3, 10, 8);
+            
+            // 弹药箱
+            ctx.fillStyle = '#5a4a3a';
+            ctx.fillRect(truckX + 70, truckY + 22, 20, 12);
+            ctx.fillStyle = '#d4a020';
+            ctx.fillRect(truckX + 72, truckY + 24, 16, 3);
+        }
+        
+        // 雷达天线
+        if (hasRadar) {
+            ctx.fillStyle = '#666';
+            ctx.fillRect(truckX + 130, truckY - 15, 4, 20);
+            ctx.fillRect(truckX + 126, truckY - 20, 12, 8);
+            
+            // 雷达信号
+            ctx.strokeStyle = '#44ff44';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(truckX + 132, truckY - 16, 8, -0.5, 0.5);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(truckX + 132, truckY - 16, 15, -0.4, 0.4);
+            ctx.stroke();
+        }
+        
+        // 车轮
+        const wheelY = truckY + 75;
+        const wheelRadius = 18;
+        
+        // 后轮
+        this.drawPixelWheel(ctx, truckX + 30, wheelY, wheelRadius, wheelColor);
+        this.drawPixelWheel(ctx, truckX + 80, wheelY, wheelRadius, wheelColor);
+        
+        // 前轮
+        this.drawPixelWheel(ctx, truckX + 145, wheelY, wheelRadius, wheelColor);
+        this.drawPixelWheel(ctx, truckX + 175, wheelY, wheelRadius, wheelColor);
+        
+        // 底盘
+        ctx.fillStyle = darkColor;
+        ctx.fillRect(truckX + 25, truckY + 75, 155, 8);
+        
+        // 悬挂系统
+        ctx.fillStyle = '#444';
+        ctx.fillRect(truckX + 28, truckY + 80, 8, 10);
+        ctx.fillRect(truckX + 78, truckY + 80, 8, 10);
+        ctx.fillRect(truckX + 143, truckY + 80, 8, 10);
+        ctx.fillRect(truckX + 173, truckY + 80, 8, 10);
+        
+        // 状态条显示
+        const barY = 160;
+        
+        // 耐久条
+        ctx.fillStyle = '#333';
+        ctx.fillRect(40, barY, 100, 8);
+        const durPct = v.durability / v.maxDurability;
+        ctx.fillStyle = durPct > 0.3 ? '#44aa44' : '#cc3333';
+        ctx.fillRect(40, barY, 100 * durPct, 8);
+        
+        // 燃油条
+        ctx.fillStyle = '#333';
+        ctx.fillRect(180, barY, 100, 8);
+        const fuelPct = v.fuel / v.maxFuel;
+        ctx.fillStyle = fuelPct > 0.2 ? '#d4a020' : '#cc3333';
+        ctx.fillRect(180, barY, 100 * fuelPct, 8);
+        
+        // 标签
+        ctx.fillStyle = '#888';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('耐久', 40, barY - 3);
+        ctx.fillText('燃油', 180, barY - 3);
+        
+        // 改装等级图标
+        let iconX = 40;
+        const iconY = 15;
+        
+        if (hasArmor) {
+            ctx.fillStyle = RARITY_COLORS[MODIFICATIONS[hasArmor].rarity] || accentColor;
+            ctx.fillText('🛡️', iconX, iconY);
+            iconX += 20;
+        }
+        if (hasEngine) {
+            ctx.fillStyle = RARITY_COLORS[MODIFICATIONS[hasEngine].rarity] || accentColor;
+            ctx.fillText('⚙️', iconX, iconY);
+            iconX += 20;
+        }
+        if (hasCargo) {
+            ctx.fillStyle = RARITY_COLORS[MODIFICATIONS[hasCargo].rarity] || accentColor;
+            ctx.fillText('📦', iconX, iconY);
+            iconX += 20;
+        }
+        if (hasWeapon) {
+            ctx.fillStyle = RARITY_COLORS[MODIFICATIONS[hasWeapon].rarity] || accentColor;
+            ctx.fillText('⚔️', iconX, iconY);
+            iconX += 20;
+        }
+        if (hasRadar) {
+            ctx.fillStyle = RARITY_COLORS[MODIFICATIONS[hasRadar].rarity] || accentColor;
+            ctx.fillText('📡', iconX, iconY);
+        }
+    }
+    
+    drawPixelWheel(ctx, x, y, radius, color) {
+        // 绘制像素风格车轮
+        ctx.fillStyle = color;
+        
+        // 外圈
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 轮毂
+        ctx.fillStyle = '#444';
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 轮毂中心
+        ctx.fillStyle = '#666';
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 轮辐（像素风格）
+        ctx.fillStyle = '#333';
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const sx = x + Math.cos(angle) * radius * 0.4;
+            const sy = y + Math.sin(angle) * radius * 0.4;
+            ctx.fillRect(sx - 2, sy - 2, 4, 4);
+        }
+    }
+
     // ========== 车辆改装界面 ==========
     renderVehicle() {
         const content = document.getElementById('vehicle-content');
@@ -627,6 +908,9 @@ class UI {
         const stats = this.game.getVehicleStats();
         const slotNames = { cargo: '货舱', armor: '装甲', engine: '引擎', radar: '雷达', weapon: '武器' };
         content.innerHTML = `
+            <div class="vehicle-display">
+                <canvas id="vehicle-canvas"></canvas>
+            </div>
             <div class="vehicle-info">
                 <h2>🚛 ${v.name}</h2>
                 <div class="stats-grid">

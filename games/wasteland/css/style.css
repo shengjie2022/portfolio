@@ -1874,3 +1874,96 @@ body {
     margin: 0 auto 16px;
 }
 .dim { color: var(--text-dim); }
+
+
+/* --- 像素车辆展示 --- */
+#vehicle-canvas {
+    display: block;
+    margin: 0 auto 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: #0a0a06;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.vehicle-display {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.vehicle-display canvas {
+    display: block;
+    margin: 0 auto;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: #0a0a06;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.vehicle-name-display {
+    color: var(--accent-glow);
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 12px;
+    text-shadow: 0 0 10px rgba(240, 192, 64, 0.3);
+}
+
+.vehicle-status-bars {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.vehicle-status-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.vehicle-status-item.danger {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.vehicle-status-item.warning {
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.vehicle-canvas-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 16px;
+    background: linear-gradient(135deg, #1a1a0e 0%, #0d0d08 100%);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.vehicle-canvas-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(255,255,255,0.02) 2px,
+            rgba(255,255,255,0.02) 4px
+        );
+    pointer-events: none;
+    border-radius: 10px;
+}
