@@ -143,6 +143,12 @@ class Game {
         this.storyFlags = {}; // 全局剧情标记
         this.unlockedFactionMods = []; // 已解锁的派系改装
         this.visitedFactions = new Set(); // 已首次接触的派系（用于派系首次接触事件）
+        
+        // ========== 新手引导系统 ==========
+        this.tutorialProgress = []; // 已完成的教程 ['town_basics', 'map_travel', 'faction_intro']
+        this.currentTutorial = null; // 当前进行中的教程
+        this.tutorialStepIndex = 0; // 当前教程对话步骤索引
+        this.tutorialSkipped = false; // 是否跳过教程
         this.endingTriggered = null; // 触发的结局ID
     }
 
@@ -173,7 +179,9 @@ class Game {
             storyFlags: this.storyFlags,
             unlockedFactionMods: this.unlockedFactionMods,
             endingTriggered: this.endingTriggered,
-            activeWarEvents: this.activeWarEvents
+            activeWarEvents: this.activeWarEvents,
+            // 新手引导进度
+            tutorialProgress: this.tutorialProgress
         };
         localStorage.setItem(Game.SAVE_KEY, JSON.stringify(saveData));
         return true;
@@ -231,6 +239,8 @@ class Game {
             this.unlockedFactionMods = data.unlockedFactionMods || [];
             this.endingTriggered = data.endingTriggered || null;
             this.activeWarEvents = data.activeWarEvents || [];
+            // 新手引导进度
+            this.tutorialProgress = data.tutorialProgress || [];
             // 恢复当前城镇引用
             if (this.map && data.currentTownId !== undefined) {
                 this.currentTown = this.map.towns.find(t => t.id === data.currentTownId) || null;
@@ -324,6 +334,10 @@ class Game {
         this.unlockedFactionMods = [];
         this.endingTriggered = null;
         this.activeWarEvents = [];
+        // 新手引导初始化
+        this.tutorialProgress = [];
+        this.currentTutorial = null;
+        this.tutorialStepIndex = 0;
         this.generateMap(mode === 'speed' ? 5 : 8);
         this.initVehicle();
         this.initCrew();
@@ -726,6 +740,10 @@ class Game {
         this.checkOrderAchievements(order, orderDistance);
         this.saveGame();
         this.checkAchievements();
+        
+        // 触发订单完成教程检查
+        this.onOrderCompleted?.();
+        
         if (this.completedOrders >= this.requiredOrders) {
             this.state = 'victory';
             this.addLog('🎉 恭喜！你完成了所有主要订单，成为废土上最可靠的快递员！');
@@ -1961,6 +1979,120 @@ class Game {
             this.modifyFactionRep(factionId, -1);
             this.addLog(`${FACTIONS[factionId].icon} 你与${FACTIONS[factionId].name}的关系有些紧张（声望-1）`);
         }
+    }
+
+    // ========== 新手引导系统 ==========
+    
+    // 检查是否有待触发的教程
+    checkTutorialTrigger(triggerId) {
+        // 如果教程已完成或正在显示，跳过
+        if (this.tutorialProgress.includes(triggerId)) return null;
+        if (this.currentTutorial) return null;
+        
+        const trigger = TUTORIAL_TRIGGERS[triggerId];
+        if (!trigger) return null;
+        if (trigger.once && this.tutorialProgress.includes(triggerId)) return null;
+        if (!trigger.check(this)) return null;
+        
+        return TUTORIAL_STEPS[triggerId];
+    }
+    
+    // 启动教程
+    startTutorial(tutorialId) {
+        const tutorial = TUTORIAL_STEPS[tutorialId];
+        if (!tutorial) return false;
+        
+        this.currentTutorial = tutorial;
+        this.tutorialStepIndex = 0;
+        this.addLog(`📖 ${tutorial.npc.icon} 老陈：「${tutorial.npc.quote}」`);
+        return true;
+    }
+    
+    // 获取当前教程对话
+    getCurrentTutorialDialogue() {
+        if (!this.currentTutorial) return null;
+        return {
+            tutorial: this.currentTutorial,
+            dialogue: this.currentTutorial.dialogue[this.tutorialStepIndex],
+            stepIndex: this.tutorialStepIndex,
+            totalSteps: this.currentTutorial.dialogue.length,
+            isLastStep: this.tutorialStepIndex >= this.currentTutorial.dialogue.length - 1,
+            hint: this.currentTutorial.hint
+        };
+    }
+    
+    // 下一句对话
+    advanceTutorial() {
+        if (!this.currentTutorial) return null;
+        
+        this.tutorialStepIndex++;
+        
+        // 检查是否完成教程
+        if (this.tutorialStepIndex >= this.currentTutorial.dialogue.length) {
+            return this.completeTutorial();
+        }
+        
+        return this.getCurrentTutorialDialogue();
+    }
+    
+    // 完成任务
+    completeTutorial() {
+        if (!this.currentTutorial) return null;
+        
+        const completedTutorial = this.currentTutorial;
+        this.tutorialProgress.push(completedTutorial.id);
+        this.addLog(`✅ 新手教程「${completedTutorial.title}」完成！`);
+        
+        // 发放奖励
+        if (completedTutorial.reward) {
+            if (completedTutorial.reward.caps) {
+                this.money += completedTutorial.reward.caps;
+                this.addLog(`💰 获得 ${completedTutorial.reward.caps} 瓶盖奖励！`);
+            }
+            if (completedTutorial.reward.title) {
+                this.addLog(`🏷️ 获得称号「${completedTutorial.reward.title}」`);
+            }
+        }
+        
+        // 检查是否完成所有教程
+        if (this.tutorialProgress.length >= 3 && !this.tutorialProgress.includes('tutorial_complete')) {
+            // 触发完成教程
+            setTimeout(() => {
+                this.startTutorial('tutorial_complete');
+            }, 500);
+        }
+        
+        const result = { completed: true, tutorial: completedTutorial };
+        this.currentTutorial = null;
+        this.tutorialStepIndex = 0;
+        
+        return result;
+    }
+    
+    // 跳过教程
+    skipTutorial() {
+        if (!this.currentTutorial) return;
+        
+        this.tutorialProgress.push(this.currentTutorial.id);
+        this.addLog(`⏭️ 跳过了教程「${this.currentTutorial.title}」`);
+        this.currentTutorial = null;
+        this.tutorialStepIndex = 0;
+        this.tutorialSkipped = true;
+    }
+    
+    // 检查教程进度并触发
+    checkAndTriggerTutorial(triggerId) {
+        const tutorial = this.checkTutorialTrigger(triggerId);
+        if (tutorial) {
+            this.startTutorial(triggerId);
+            return tutorial;
+        }
+        return null;
+    }
+    
+    // 检查教程完成状态
+    isTutorialCompleted(tutorialId) {
+        return this.tutorialProgress.includes(tutorialId);
     }
 
     // ========== 结局系统 ==========

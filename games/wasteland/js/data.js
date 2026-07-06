@@ -2,6 +2,183 @@
 // 废土快递 - 游戏数据
 // ============================================================
 
+// ========== 新手引导系统 ==========
+// NPC：老司机"老陈" - 废土老兵，驾驶货车30年的老前辈
+const TUTORIAL_NPC = {
+    name: '老陈',
+    icon: '👴',
+    title: '老司机',
+    quote: '在废土上跑了三十年，见过太多新人进来，也见过太多人再也出不去。',
+    personality: '幽默、务实、碎碎念，但都是真心话'
+};
+
+// 新手引导步骤
+const TUTORIAL_STEPS = {
+    // 教程1：城镇入门
+    town_basics: {
+        id: 'town_basics',
+        title: '城镇生存指南',
+        trigger: 'first_town_visit',
+        npc: TUTORIAL_NPC,
+        dialogue: [
+            {
+                speaker: 'npc',
+                text: '嘿，新面孔！让我猜猜——你是刚上路的新人吧？别紧张，我叫老陈，在这废土上跑了三十年货车了。'
+            },
+            {
+                speaker: 'npc',
+                text: '既然你来了，我就给你讲讲在这城镇里怎么混。首先，最重要的三件事：接单、交易、改车。'
+            },
+            {
+                speaker: 'npc',
+                text: '📋 看这里——「查看订单」能让你找到货运活儿。完成订单是赚瓶盖的主要方式，新手最好从简单的短途订单开始。'
+            },
+            {
+                speaker: 'npc',
+                text: '🏪 「交易市场」是低买高卖的地方。注意看价格，不同城镇的物价不一样——这就是套利的基础！在贸易站买东西便宜，去军事基地卖东西贵。'
+            },
+            {
+                speaker: 'npc',
+                text: '🔧 「改装车辆」能让你装上各种零件。引擎提速、装甲扛揍、货舱多装东西...改装是你在废土上活命的根本。'
+            },
+            {
+                speaker: 'npc',
+                text: '🍺 「酒馆休息」能让乘员恢复状态，但这也意味着消耗时间和瓶盖。权衡好再决定。'
+            },
+            {
+                speaker: 'npc',
+                text: '好了，基本就这些。记住：在废土上，活着就是胜利。先去接个订单试试水吧，新手！我看好你。'
+            }
+        ],
+        unlockPanels: ['orders', 'trade', 'vehicle'],
+        hint: '点击「📋 查看订单」开始你的第一单'
+    },
+    
+    // 教程2：地图旅行
+    map_travel: {
+        id: 'map_travel',
+        title: '废土之路',
+        trigger: 'first_map_view',
+        npc: TUTORIAL_NPC,
+        dialogue: [
+            {
+                speaker: 'npc',
+                text: '哟，看来你还没被订单难住。现在该上路了——让我给你讲讲怎么看地图。'
+            },
+            {
+                speaker: 'npc',
+                text: '🗺️ 这张地图上，每个点都是一个城镇。圆圈的颜色代表城镇类型：金色是贸易站、蓝色是军事基地、绿色是定居点...不同颜色代表不同派系控制。'
+            },
+            {
+                speaker: 'npc',
+                text: '📏 选路线的时候注意看三个数字：距离、油耗、危险度。距离越远油耗越高，危险度越高，遇到麻烦的概率越大。'
+            },
+            {
+                speaker: 'npc',
+                text: '⚠️ 还有个重点——辐射路线。虚线标记的路线有辐射，会持续掉耐久。除非你装甲够厚或者有特殊装备，否则别轻易走。'
+            },
+            {
+                speaker: 'npc',
+                text: '💡 小技巧：有时候绕远路反而更划算——多烧点油但少遇几次强盗，总比翻车强。学会计算成本！'
+            },
+            {
+                speaker: 'npc',
+                text: '好了，选一条路出发吧。记住，出去了就不一定能回来——做好万全准备再走！'
+            }
+        ],
+        unlockPanels: ['map'],
+        hint: '在地图上选择一条路线然后点击「出发」'
+    },
+    
+    // 教程3：派系初识
+    faction_intro: {
+        id: 'faction_intro',
+        title: '废土六大势力',
+        trigger: 'first_order_complete',
+        npc: TUTORIAL_NPC,
+        dialogue: [
+            {
+                speaker: 'npc',
+                text: '不错不错，第一单完成了！在废土上能活着交货，就是本事。不过我要提醒你一件事——派系。'
+            },
+            {
+                speaker: 'npc',
+                text: '🏛️ 废土上有六股势力：拾荒者联盟、灰烬之子、锈轮商会、钢铁脊梁、净土农联、还有神秘的零点追寻者。'
+            },
+            {
+                speaker: 'npc',
+                text: '⚙️ 拾荒者们——橙色标记的那帮家伙——是机械迷，整天在废墟里淘旧世界的东西。他们不讨厌你，但也不喜欢你，关键看你能不能给他们带来好处。'
+            },
+            {
+                speaker: 'npc',
+                text: '🕯️ 灰烬之子——灰色标记——是宗教疯子，整天念叨什么「秩序」和「净化」。对他们要小心，别提变异者的事。'
+            },
+            {
+                speaker: 'npc',
+                text: '📜 锈轮商会——红色标记——只认钱不认人。在他们地盘做生意最安全，但别想着占便宜，他们什么都看在眼里。'
+            },
+            {
+                speaker: 'npc',
+                text: '🎖️ 钢铁脊梁——绿色标记——是前军人组成的组织，最讲规矩。有他们罩着的路线很安全，但别带武器进他们的地盘，会被没收的。'
+            },
+            {
+                speaker: 'npc',
+                text: '🌾 净土农联——也是绿色——是农民组成的联盟，关心粮食和和平。跟他们搞好关系有好处，至少食物补给不用愁。'
+            },
+            {
+                speaker: 'npc',
+                text: '🔮 最后是零点追寻者——黑色带绿光的那个——一群神秘主义者，专门研究大寂静的真相。跟他们混能挖到宝，但别指望他们帮你打架。'
+            },
+            {
+                speaker: 'npc',
+                text: '记住：废土上没有永远的朋友，也没有永远的敌人。你的选择决定你最终的归属——或者，你也可以谁都不跟，当个独狼。'
+            }
+        ],
+        unlockPanels: ['factions', 'missions'],
+        hint: '点击「🏛️ 派系」了解更多派系信息'
+    },
+    
+    // 教程完成
+    tutorial_complete: {
+        id: 'tutorial_complete',
+        title: '废土之旅正式开始',
+        trigger: 'all_tutorials_done',
+        npc: TUTORIAL_NPC,
+        dialogue: [
+            {
+                speaker: 'npc',
+                text: '哈！看来你已经是个合格的废土新人了。城镇、地图、派系——你都入门了。'
+            },
+            {
+                speaker: 'npc',
+                text: '但别得意太早，这只是开始。废土上还有更多秘密等着你：零点碎片、旧世界记录、还有各种奇怪的遭遇...'
+            },
+            {
+                speaker: 'npc',
+                text: '记住老陈的话：活着，赚钱，别死。做到这三点，你就能在这废土上站稳脚跟。'
+            },
+            {
+                speaker: 'npc',
+                text: '好了，我去酒馆喝一杯了。有什么问题随时来找我——不过下次可能要收你瓶盖哦，哈哈！'
+            },
+            {
+                speaker: 'narrator',
+                text: '🎉 新手教程完成！你已解锁老陈的所有智慧。祝你废土之旅顺利！'
+            }
+        ],
+        reward: { caps: 100, title: '废土新人' },
+        hint: null
+    }
+};
+
+// 教程触发条件
+const TUTORIAL_TRIGGERS = {
+    first_town_visit: { check: () => true, once: true }, // 首次进入城镇
+    first_map_view: { check: () => true, once: true }, // 首次查看地图
+    first_order_complete: { check: (game) => game.completedOrders >= 1, once: true }, // 完成第1个订单
+    all_tutorials_done: { check: (game) => game.tutorialProgress.length >= 3, once: false } // 所有教程完成
+};
+
 const TOWN_NAMES = [
     '铁锈镇', '新希望', '弹坑城', '辐光营地', '骸骨驿站',
     '绿洲港', '钢铁堡', '灰烬谷', '避风港', '废墟市集',

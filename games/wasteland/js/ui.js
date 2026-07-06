@@ -267,7 +267,11 @@ class UI {
 
         // 导航按钮
         document.getElementById('nav-town')?.addEventListener('click', () => { if (this.game.currentTown) this.showPanel('town'); });
-        document.getElementById('nav-map')?.addEventListener('click', () => this.showPanel('map'));
+        document.getElementById('nav-map')?.addEventListener('click', () => { 
+            this.showPanel('map');
+            // 触发地图教程
+            this.checkMapTutorial();
+        });
         document.getElementById('nav-vehicle')?.addEventListener('click', () => this.showPanel('vehicle'));
         document.getElementById('nav-trade')?.addEventListener('click', () => { if (this.game.currentTown) this.showPanel('trade'); });
         document.getElementById('nav-crew')?.addEventListener('click', () => this.showPanel('crew'));
@@ -278,6 +282,46 @@ class UI {
         document.getElementById('nav-missions')?.addEventListener('click', () => this.showPanel('missions'));
         document.getElementById('nav-fragments')?.addEventListener('click', () => this.showPanel('fragments'));
         document.getElementById('nav-collectibles')?.addEventListener('click', () => this.showPanel('collectibles'));
+    }
+
+    // ========== 教程触发检查 ==========
+    checkAndShowTutorial() {
+        // 检查是否有教程正在进行
+        if (this.game.currentTutorial) {
+            this.renderTutorial();
+            return true;
+        }
+        return false;
+    }
+
+    // 首次进入城镇触发教程
+    checkTownTutorial() {
+        if (this.checkAndShowTutorial()) return;
+        
+        const tutorial = this.game.checkAndTriggerTutorial('town_basics');
+        if (tutorial) {
+            this.renderTutorial();
+        }
+    }
+
+    // 首次查看地图触发教程
+    checkMapTutorial() {
+        if (this.checkAndShowTutorial()) return;
+        
+        const tutorial = this.game.checkAndTriggerTutorial('map_travel');
+        if (tutorial) {
+            this.renderTutorial();
+        }
+    }
+
+    // 完成订单后检查教程
+    checkOrderCompleteTutorial() {
+        if (this.checkAndShowTutorial()) return;
+        
+        const tutorial = this.game.checkAndTriggerTutorial('faction_intro');
+        if (tutorial) {
+            this.renderTutorial();
+        }
     }
 
     // ========== 状态栏（v3.0 增强） ==========
@@ -384,6 +428,9 @@ class UI {
         if (factionContact) {
             this.showFactionFirstContactModal(town, factionContact);
         }
+        
+        // 检查新手教程触发
+        this.checkTownTutorial();
     }
 
     // 派系首次接触模态框
@@ -1786,6 +1833,11 @@ class UI {
         if (this.game.acceptOrder(orderId)) this.showToast('订单已接取', 'success');
         this.refresh();
     }
+    
+    // 订单完成时的回调（用于触发教程）
+    onOrderCompleted() {
+        this.checkOrderCompleteTutorial();
+    }
 
     handleTavernRest() {
         const result = this.game.restAtTavern();
@@ -1836,6 +1888,102 @@ class UI {
             setTimeout(() => toast.remove(), 300);
         }, 2500);
     }
+
+    // ========== 新手引导UI ==========
+    
+    // 渲染教程对话框
+    renderTutorial() {
+        const data = this.game.getCurrentTutorialDialogue();
+        if (!data) return;
+        
+        const { tutorial, dialogue, stepIndex, totalSteps, isLastStep, hint } = data;
+        
+        // 创建或更新教程模态框
+        let modal = document.getElementById('tutorial-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'tutorial-modal';
+            modal.className = 'tutorial-modal-overlay';
+            document.body.appendChild(modal);
+        }
+        
+        // 根据说话者设置样式
+        const isNpc = dialogue.speaker === 'npc';
+        const speakerName = isNpc ? tutorial.npc.name : '旁白';
+        const speakerIcon = isNpc ? tutorial.npc.icon : '📜';
+        const bubbleClass = isNpc ? 'tutorial-bubble-npc' : 'tutorial-bubble-narrator';
+        
+        modal.innerHTML = `
+            <div class="tutorial-modal-content">
+                <div class="tutorial-header">
+                    <div class="tutorial-title">
+                        <span class="tutorial-npc-icon">${tutorial.npc.icon}</span>
+                        <span>${tutorial.npc.name}的教导</span>
+                    </div>
+                    <div class="tutorial-progress">
+                        <span class="tutorial-step">${stepIndex + 1}/${totalSteps}</span>
+                        <div class="tutorial-progress-bar">
+                            <div class="tutorial-progress-fill" style="width:${((stepIndex + 1) / totalSteps) * 100}%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tutorial-body">
+                    <div class="tutorial-speaker">
+                        <div class="speaker-avatar">${speakerIcon}</div>
+                        <div class="speaker-name">${speakerName}</div>
+                    </div>
+                    <div class="tutorial-dialogue ${bubbleClass}">
+                        <p>${dialogue.text}</p>
+                    </div>
+                </div>
+                
+                ${hint && stepIndex === totalSteps - 2 ? `
+                    <div class="tutorial-hint">
+                        <span class="hint-icon">💡</span>
+                        <span>${hint}</span>
+                    </div>
+                ` : ''}
+                
+                <div class="tutorial-actions">
+                    <button class="btn btn-secondary btn-skip" onclick="ui.skipCurrentTutorial()">
+                        ⏭️ 跳过教程
+                    </button>
+                    <button class="btn btn-primary btn-next" onclick="ui.advanceCurrentTutorial()">
+                        ${isLastStep ? '🎉 完成' : '下一句 →'}
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'flex';
+    }
+    
+    // 推进教程对话
+    advanceCurrentTutorial() {
+        const result = this.game.advanceTutorial();
+        if (result?.completed) {
+            this.closeTutorial();
+            this.showToast(`✅ 教程「${result.tutorial.title}」完成！`, 'success');
+            this.refresh();
+        } else {
+            this.renderTutorial();
+        }
+    }
+    
+    // 跳过当前教程
+    skipCurrentTutorial() {
+        this.game.skipTutorial();
+        this.closeTutorial();
+        this.showToast('已跳过教程', 'info');
+        this.refresh();
+    }
+    
+    // 关闭教程
+    closeTutorial() {
+        const modal = document.getElementById('tutorial-modal');
+        if (modal) modal.style.display = 'none';
+    }
 }
 
 // ========== 全局初始化 ==========
@@ -1847,5 +1995,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 显式挂到 window，确保 inline onclick 能访问
     window.game = game;
     window.ui = ui;
+    // 设置订单完成回调
+    game.onOrderCompleted = () => ui.onOrderCompleted();
     ui.init();
 });
