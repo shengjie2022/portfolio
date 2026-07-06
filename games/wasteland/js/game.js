@@ -1985,16 +1985,23 @@ class Game {
     
     // 检查是否有待触发的教程
     checkTutorialTrigger(triggerId) {
-        // 如果教程已完成或正在显示，跳过
-        if (this.tutorialProgress.includes(triggerId)) return null;
+        // 如果正在显示教程，跳过
         if (this.currentTutorial) return null;
         
-        const trigger = TUTORIAL_TRIGGERS[triggerId];
+        const tutorial = TUTORIAL_STEPS[triggerId];
+        if (!tutorial) return null;
+        
+        // 如果教程已完成，跳过
+        if (this.tutorialProgress.includes(triggerId)) return null;
+        
+        // 获取触发条件
+        const trigger = TUTORIAL_TRIGGERS[tutorial.trigger];
         if (!trigger) return null;
-        if (trigger.once && this.tutorialProgress.includes(triggerId)) return null;
+        
+        // 检查触发条件
         if (!trigger.check(this)) return null;
         
-        return TUTORIAL_STEPS[triggerId];
+        return tutorial;
     }
     
     // 启动教程

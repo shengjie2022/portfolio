@@ -298,8 +298,17 @@ class UI {
     checkTownTutorial() {
         if (this.checkAndShowTutorial()) return;
         
+        console.log('检查城镇教程...', {
+            tutorialProgress: this.game.tutorialProgress,
+            currentTutorial: this.game.currentTutorial,
+            currentTown: this.game.currentTown?.name
+        });
+        
         const tutorial = this.game.checkAndTriggerTutorial('town_basics');
+        console.log('教程结果:', tutorial);
+        
         if (tutorial) {
+            console.log('显示教程...');
             this.renderTutorial();
         }
     }
