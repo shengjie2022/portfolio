@@ -1985,32 +1985,57 @@ class Game {
     
     // 检查是否有待触发的教程
     checkTutorialTrigger(triggerId) {
+        console.log('[checkTutorialTrigger] 收到请求:', triggerId);
+        
         // 如果正在显示教程，跳过
-        if (this.currentTutorial) return null;
+        if (this.currentTutorial) {
+            console.log('[checkTutorialTrigger] 教程已在显示');
+            return null;
+        }
         
         const tutorial = TUTORIAL_STEPS[triggerId];
-        if (!tutorial) return null;
+        console.log('[checkTutorialTrigger] 查找教程:', triggerId, '结果:', tutorial ? '找到' : '未找到');
+        
+        if (!tutorial) {
+            console.log('[checkTutorialTrigger] TUTORIAL_STEPS 键:', Object.keys(TUTORIAL_STEPS));
+            return null;
+        }
         
         // 如果教程已完成，跳过
-        if (this.tutorialProgress.includes(triggerId)) return null;
+        if (this.tutorialProgress.includes(triggerId)) {
+            console.log('[checkTutorialTrigger] 教程已完成:', triggerId);
+            return null;
+        }
         
         // 获取触发条件
         const trigger = TUTORIAL_TRIGGERS[tutorial.trigger];
-        if (!trigger) return null;
+        console.log('[checkTutorialTrigger] 教程触发器:', tutorial.trigger, '结果:', trigger ? '找到' : '未找到');
+        
+        if (!trigger) {
+            console.log('[checkTutorialTrigger] TUTORIAL_TRIGGERS 键:', Object.keys(TUTORIAL_TRIGGERS));
+            return null;
+        }
         
         // 检查触发条件
-        if (!trigger.check(this)) return null;
+        const checkResult = trigger.check(this);
+        console.log('[checkTutorialTrigger] 触发条件检查:', checkResult);
         
+        if (!checkResult) return null;
+        
+        console.log('[checkTutorialTrigger] 返回教程:', tutorial.title);
         return tutorial;
     }
     
     // 启动教程
     startTutorial(tutorialId) {
+        console.log('[startTutorial] 启动教程:', tutorialId);
         const tutorial = TUTORIAL_STEPS[tutorialId];
+        console.log('[startTutorial] 找到教程:', tutorial?.title);
         if (!tutorial) return false;
         
         this.currentTutorial = tutorial;
         this.tutorialStepIndex = 0;
+        console.log('[startTutorial] currentTutorial 设置为:', tutorial.title);
         this.addLog(`📖 ${tutorial.npc.icon} 老陈：「${tutorial.npc.quote}」`);
         return true;
     }

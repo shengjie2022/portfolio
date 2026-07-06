@@ -296,20 +296,27 @@ class UI {
 
     // 首次进入城镇触发教程
     checkTownTutorial() {
-        if (this.checkAndShowTutorial()) return;
+        console.log('[checkTownTutorial] 被调用');
+        if (this.checkAndShowTutorial()) {
+            console.log('[checkTownTutorial] 教程已在显示，跳过');
+            return;
+        }
         
-        console.log('检查城镇教程...', {
+        console.log('[checkTownTutorial] 开始检查', {
             tutorialProgress: this.game.tutorialProgress,
             currentTutorial: this.game.currentTutorial,
-            currentTown: this.game.currentTown?.name
+            tutorialSteps: Object.keys(TUTORIAL_STEPS),
+            tutorialTriggers: Object.keys(TUTORIAL_TRIGGERS)
         });
         
         const tutorial = this.game.checkAndTriggerTutorial('town_basics');
-        console.log('教程结果:', tutorial);
+        console.log('[checkTownTutorial] 教程结果:', tutorial);
         
         if (tutorial) {
-            console.log('显示教程...');
+            console.log('[checkTownTutorial] 调用 renderTutorial');
             this.renderTutorial();
+        } else {
+            console.log('[checkTownTutorial] 没有触发教程');
         }
     }
 
@@ -378,10 +385,19 @@ class UI {
 
     // ========== 城镇界面 ==========
     renderTown() {
+        console.log('[renderTown] 开始渲染城镇界面');
         const town = this.game.currentTown;
-        if (!town) return;
+        if (!town) {
+            console.log('[renderTown] 没有当前城镇');
+            return;
+        }
+        console.log('[renderTown] 当前城镇:', town.name);
+        
         const content = document.getElementById('town-content');
-        if (!content) return;
+        if (!content) {
+            console.log('[renderTown] 没有找到 town-content');
+            return;
+        }
         const typeData = TOWN_TYPES[town.type];
         const completable = this.game.activeOrders.filter(o => o.toTown === town.id);
         
@@ -1902,8 +1918,13 @@ class UI {
     
     // 渲染教程对话框
     renderTutorial() {
+        console.log('[renderTutorial] 开始渲染');
         const data = this.game.getCurrentTutorialDialogue();
-        if (!data) return;
+        console.log('[renderTutorial] 获取的数据:', data);
+        if (!data) {
+            console.log('[renderTutorial] 没有教程数据');
+            return;
+        }
         
         const { tutorial, dialogue, stepIndex, totalSteps, isLastStep, hint } = data;
         
